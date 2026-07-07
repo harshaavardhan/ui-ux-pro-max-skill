@@ -130,6 +130,14 @@ function migrate(db) {
   );
 
   CREATE INDEX IF NOT EXISTS idx_versions_artifact ON versions(artifact_id);
+  `);
+
+  // Additive migrations for existing databases.
+  try {
+    db.exec("ALTER TABLE magic_tokens ADD COLUMN purpose TEXT NOT NULL DEFAULT 'share'");
+  } catch { /* column already exists */ }
+
+  db.exec(`
   CREATE INDEX IF NOT EXISTS idx_comments_artifact ON comments(artifact_id);
   CREATE INDEX IF NOT EXISTS idx_audit_artifact ON audit_log(artifact_id);
   CREATE INDEX IF NOT EXISTS idx_links_artifact ON share_links(artifact_id);

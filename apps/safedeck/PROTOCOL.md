@@ -133,6 +133,54 @@ owner > editor > commenter > viewer
   no mechanism for an external, unauthenticated party to be granted a role
   row directly.
 
+**Microsoft (Outlook) single sign-on.** As an alternative to email +
+password, a user may authenticate via Microsoft Entra ID using the OAuth 2.0
+authorization-code flow against `login.microsoftonline.com`, requesting the
+`openid profile email` scopes. The integration is configured via three
+environment variables — `MS_CLIENT_ID`, `MS_CLIENT_SECRET`, and `MS_TENANT`
+(defaulting to `"common"`) — and its redirect URI is `{origin}/api/auth/outlook/callback`.
+The flow is CSRF-protected with a random `state` value stored in a cookie and
+checked against the value returned by Microsoft on callback.
+
+The `id_token` is not obtained by redirecting the browser through an
+implicit-flow fragment; it is received directly from Microsoft's token
+endpoint over TLS, as part of a confidential-client authorization-code
+exchange (client ID + client secret). Because that exchange happens
+server-to-server over an authenticated TLS channel straight from Microsoft,
+the claims inside the `id_token` — email/`preferred_username` and name — are
+trusted as-is; SafeDeck does not separately re-verify the token's signature
+locally. If the claimed email matches an existing account, the user is
+signed in immediately. If the email is new, SafeDeck cannot yet place the
+user in an organization, so it issues a short-lived (15-minute),
+HMAC-signed pending-SSO cookie carrying the verified identity and redirects
+to `/register`, where the user only has to pick or create an organization —
+no password is ever collected or stored for an SSO-created account
+(`password_hash` stays `NULL` on that user row).
+
+When `MS_CLIENT_ID` is not configured (e.g. local development without real
+Entra ID credentials), a clearly-labeled development simulator at
+`/dev/outlook` stands in for the real Microsoft login screen. Its API
+endpoint is disabled — it returns `404` — whenever real credentials are
+actually configured, so the simulator can never be reachable in an
+environment that has genuine SSO wired up.
+
+**Passwordless email sign-in.** Members may also sign in without a password
+via a magic sign-in link. `POST /api/auth/magic/request-login` issues a
+single-use, 15-minute magic token — stored in the `magic_tokens` table,
+which gained a `purpose` column (defaulting to `'share'`) so login tokens
+can be tagged `purpose='login'` and distinguished from share-link
+verification tokens. The existing `/api/auth/magic/verify` endpoint now
+recognizes login-purpose tokens and, on success, creates a 7-day session for
+that user (as distinct from the 24-hour scoped grant cookie issued for
+recipient-bound share links — see Section 4).
+
+The request endpoint is anti-enumeration by design: it returns an identical
+response regardless of whether the submitted email belongs to an account,
+and a token is only ever actually created when the account exists — so the
+response gives no signal an attacker could use to test which emails are
+registered. Requesting and consuming a login link are each audited as
+`login_link_requested` / `login_link_used`.
+
 ---
 
 ## 4. Share links (cross-company sharing)
@@ -225,6 +273,34 @@ Anyone with commenter role or above can post; anyone with viewer access or
 above — including plain viewers — can read the thread. Posting requires at
 least `commenter`.
 
+**Page-wise editing.** SafeDeck recognizes a deck convention on top of plain
+HTML: each top-level `<section>` element inside `<body>` is treated as one
+page. `lib/pages.js` implements this by lexically splitting a document into
+a `prefix`, an array of `pages[]`, and a `suffix`, using depth-counted
+`<section>` scanning (so nested `<section>` elements inside a top-level one
+stay part of that page rather than being split out themselves).
+
+Reassembly is byte-exact: `prefix + pages.join('') + suffix` reproduces the
+original document exactly. This is not a cosmetic property — it is required
+by Section 1, since versions are SHA-256 fingerprinted, and a page-wise
+save that round-tripped through the splitter without reproducing the
+original bytes for untouched pages would silently change the fingerprint
+of content nobody edited. Documents that contain no top-level `<section>`
+elements fall back to full-source editing rather than being forced into
+the page model.
+
+On top of this split, editors get a page list (select, add, delete,
+reorder), a per-page source pane, and a live per-page preview rendered
+inside a sandboxed `srcdoc` iframe with an injected no-network CSP `<meta>`
+tag. That injected CSP is preview-only hardening for the editing surface;
+it has no bearing on served artifacts, which continue to get their real
+CSP from the response headers of the `/api/render/[versionId]` endpoint
+(Section 2), independent of anything the editor does. Saving a page-wise
+edit still always appends a brand-new immutable version, exactly as in
+Section 1 — the page-wise editing surface is a convenience layered on top
+of the protocol; it changes none of the protocol's integrity, immutability,
+or soft-lock semantics.
+
 ---
 
 ## 7. Email flow
@@ -252,3 +328,5 @@ endpoint after the appropriate access check (Sections 2–4).
 | Leaked magic link | 15-minute expiry and single-use consumption bound the exposure window to effectively one valid click |
 | Insider over-permissioning (e.g., an owner grants too broadly) | every permission grant/removal is written to the per-artifact audit log, visible to owners, so over-broad grants are discoverable after the fact |
 | XSS from artifact content reaching the host application | artifact HTML is never inlined into the app's DOM; it is only ever rendered inside a sandboxed iframe without `allow-same-origin`, in an opaque origin isolated from the host |
+| Forged Microsoft SSO callback | the callback is rejected unless its `state` value matches the random state cookie set before redirecting to Microsoft, and the `id_token` is obtained via a direct, confidential-client, server-to-server exchange with Microsoft's token endpoint over TLS — an attacker cannot fabricate a valid callback without both the state secret and Microsoft's cooperation |
+| Leaked passwordless (magic) login token | 15-minute expiry, single-use consumption, and an anti-enumeration request endpoint (identical response whether or not the account exists, and no token issued for non-existent accounts) bound both the exposure window and the ability to probe for valid accounts |

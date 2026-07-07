@@ -7,9 +7,10 @@ const SAMPLE = `<!doctype html>
 <html>
 <head>
 <style>
-  body { font-family: system-ui, sans-serif; margin: 0; background: #0f172a; color: #f8fafc;
-         display: grid; place-items: center; min-height: 100vh; }
-  .slide { max-width: 640px; padding: 48px; text-align: center; }
+  body { font-family: system-ui, sans-serif; margin: 0; background: #0f172a; color: #f8fafc; }
+  section.page { min-height: 100vh; display: grid; place-items: center; padding: 48px;
+                 border-bottom: 1px dashed #334155; }
+  .inner { max-width: 640px; text-align: center; }
   h1 { font-size: 2.2rem; background: linear-gradient(90deg,#818cf8,#c084fc);
        -webkit-background-clip: text; background-clip: text; color: transparent; }
   button { margin-top: 24px; padding: 10px 22px; border-radius: 999px; border: none;
@@ -17,11 +18,25 @@ const SAMPLE = `<!doctype html>
 </style>
 </head>
 <body>
-  <div class="slide">
-    <h1>Q3 Business Review</h1>
-    <p>An interactive deck — click the button. Scripts run, but this page cannot reach the network.</p>
-    <button onclick="this.textContent = 'Clicked at ' + new Date().toLocaleTimeString()">Try me</button>
-  </div>
+  <section class="page">
+    <div class="inner">
+      <h1>Q3 Business Review</h1>
+      <p>An interactive deck. Each top-level &lt;section&gt; is a page — editable one at a time in SafeDeck.</p>
+      <button onclick="this.textContent = 'Clicked at ' + new Date().toLocaleTimeString()">Try me</button>
+    </div>
+  </section>
+  <section class="page">
+    <div class="inner">
+      <h1>Revenue</h1>
+      <p>Up and to the right. Scripts run, but this deck cannot reach the network.</p>
+    </div>
+  </section>
+  <section class="page">
+    <div class="inner">
+      <h1>Next steps</h1>
+      <p>Share this deck with a recipient-bound link — forwarding it leaks nothing.</p>
+    </div>
+  </section>
 </body>
 </html>`;
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import db from "@/lib/db.js";
-import { signGrant } from "@/lib/crypto.js";
+import { signGrant, randomToken } from "@/lib/crypto.js";
 import { audit } from "@/lib/audit.js";
 import { handler } from "@/lib/api.js";
 
@@ -20,6 +20,28 @@ export const GET = handler(async (req) => {
   if (!row || row.used || new Date(row.expires_at).getTime() < Date.now()) {
     return redirectFail;
   }
+
+  // Passwordless member sign-in token.
+  if (row.purpose === "login") {
+    const user = db.prepare("SELECT * FROM users WHERE email = ?").get(row.email);
+    if (!user) return redirectFail;
+    db.prepare("UPDATE magic_tokens SET used = 1 WHERE token = ?").run(token);
+    const sessionToken = randomToken(32);
+    const expires = new Date(Date.now() + 7 * 864e5);
+    db.prepare(
+      "INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)"
+    ).run(sessionToken, user.id, expires.toISOString());
+    audit(null, row.email, "login_link_used", "");
+    const res = NextResponse.redirect(new URL("/dashboard", url.origin));
+    res.cookies.set("sd_session", sessionToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      expires,
+    });
+    return res;
+  }
+
   const link = db
     .prepare("SELECT * FROM share_links WHERE id = ?")
     .get(row.share_link_id);
