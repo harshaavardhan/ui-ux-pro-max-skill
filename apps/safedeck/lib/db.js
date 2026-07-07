@@ -145,6 +145,18 @@ function migrate(db) {
   CREATE INDEX IF NOT EXISTS idx_audit_artifact ON audit_log(artifact_id);
   CREATE INDEX IF NOT EXISTS idx_links_artifact ON share_links(artifact_id);
   `);
+
+  // System account that owns anonymous "quick share" artifacts — nobody can
+  // sign in as it, so these artifacts never surface in a real user's workspace.
+  db.prepare(
+    "INSERT OR IGNORE INTO orgs (id, name, join_code) VALUES ('org_public', 'Public quick shares', '__public__')"
+  ).run();
+  db.prepare(
+    "INSERT OR IGNORE INTO users (id, org_id, email, name, password_hash) VALUES ('usr_public', 'org_public', 'public@safedeck.local', 'Anonymous', NULL)"
+  ).run();
 }
+
+export const PUBLIC_USER_ID = "usr_public";
+export const PUBLIC_ORG_ID = "org_public";
 
 export default db;

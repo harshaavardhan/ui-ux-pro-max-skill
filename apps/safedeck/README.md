@@ -14,6 +14,13 @@ the underlying protocol is in [PROTOCOL.md](./PROTOCOL.md).
 
 ## Features
 
+- One-step anonymous sharing (the front page): paste HTML, upload an `.html`
+  file, or import a URL, and get a safe, sandboxed, tamper-evident link
+  instantly — no account required, in the spirit of an online PDF tool. Sign
+  in only when you want to edit, comment, or control access. URL imports are
+  fetched server-side behind SSRF guards (http/https only, private/loopback/
+  metadata addresses blocked, no redirects, 2 MB cap) and snapshotted so the
+  served copy is fingerprinted and network-isolated like any other artifact
 - Versioned artifacts: edits always append a new version, never overwrite one
 - SHA-256 integrity check recomputed on every render, not just on save
 - Sandboxed rendering: `<iframe sandbox="allow-scripts">` (no
@@ -108,10 +115,12 @@ mechanisms summarized above.
 ```
 apps/safedeck/
 ├── app/                  # Next.js App Router pages
+│   ├── page.js + quick-share.js  # the simple front page: paste/upload/import → safe link
 │   ├── ...                    # dashboard, artifact viewer, /outbox, auth pages
 │   ├── artifacts/[id]/edit/    # visual "studio" editor (page rail, canvas, Design/Assistant dock)
 │   ├── dev/outlook/            # development Microsoft-sign-in simulator (only reachable when MS_CLIENT_ID is unset)
 │   └── api/                    # Next.js route handlers
+│       ├── quick/                   # POST — anonymous one-step share (paste HTML or import a URL)
 │       ├── render/[versionId]/     # GET — sandboxed artifact render endpoint
 │       ├── auth/outlook/           # Outlook SSO: authorization redirect + /callback
 │       ├── auth/magic/request-login/  # POST — issue a passwordless sign-in link
@@ -119,12 +128,13 @@ apps/safedeck/
 │       ├── ai/credits/             # GET — org's remaining AI credits + whether a platform key is configured
 │       └── ...                     # artifacts, versions, share links, comments, auth
 ├── lib/
-│   ├── db.js             # SQLite connection + schema/queries
+│   ├── db.js             # SQLite connection + schema/queries (seeds the public quick-share account)
 │   ├── crypto.js         # SHA-256 hashing, HMAC signing, token generation
 │   ├── auth.js           # registration, login, session handling
 │   ├── access.js         # role checks, share-link resolution, grant verification
 │   ├── sso.js            # Microsoft Entra ID OAuth flow, state/pending-SSO cookies
 │   ├── pages.js          # page-wise document splitting/reassembly (prefix + pages[] + suffix)
+│   ├── import.js         # SSRF-guarded URL fetch for quick-share imports
 │   ├── editor-runtime.js # injected visual-editor runtime (selection, inline edit, postMessage, clean serialization)
 │   └── audit.js          # audit log writes/reads
 │   └── mail.js           # email composition + dev outbox / SMTP dispatch

@@ -215,6 +215,26 @@ view (or comment, per the link's role) until the link expires or is
 revoked. This mode is documented, in-product, as **lower assurance**:
 forwarding the URL is equivalent to forwarding access.
 
+### Anonymous quick shares
+
+The front page offers a no-account, one-step path: a visitor pastes HTML,
+uploads an `.html` file, or imports a URL, and receives a **signed** share
+link immediately. Such artifacts are owned by a system account
+(`usr_public`) that has no password and cannot be signed into, so they never
+surface in any real user's workspace and are effectively immutable snapshots
+— editing requires signing in, which makes new artifacts yours. A quick
+share is a full artifact in every other respect: it is versioned,
+SHA-256-fingerprinted, served only through the sandboxed render endpoint, and
+its share link is revocable/expirable like any other signed link.
+
+URL imports are performed **server-side** and snapshotted (never hot-linked —
+the no-network CSP would block a live external page anyway), behind SSRF
+guards: only `http`/`https` schemes; every resolved address is checked and
+loopback, private (RFC 1918), CGNAT, link-local, and cloud-metadata
+(`169.254.169.254`) ranges are rejected; redirects are refused (they could
+bypass the address check); and responses are capped at 2 MB with an HTML
+content-type requirement and a request timeout.
+
 ### Shared mechanics
 
 - Link tokens are 32 bytes of CSPRNG output, base64url-encoded.
