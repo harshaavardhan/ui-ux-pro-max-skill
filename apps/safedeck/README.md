@@ -1,0 +1,89 @@
+# SafeDeck
+
+SafeDeck is an enterprise platform for safely sharing interactive HTML
+artifacts between companies, replacing the practice of emailing PowerPoint
+decks around. Every artifact version is content-hashed and immutable,
+every render is re-verified against that hash before it's served, and
+every artifact is displayed inside a sandboxed iframe that cannot reach the
+network or the host application — so a shared artifact can be trusted not
+to have been tampered with, and not to phone home or attack the app it's
+displayed in. Cross-company sharing is handled by share links, which can be
+locked to a specific recipient's verified email address for the strongest
+guarantee, or issued as simple bearer links for convenience. Full detail on
+the underlying protocol is in [PROTOCOL.md](./PROTOCOL.md).
+
+## Features
+
+- Versioned artifacts: edits always append a new version, never overwrite one
+- SHA-256 integrity check recomputed on every render, not just on save
+- Sandboxed rendering: `<iframe sandbox="allow-scripts">` (no
+  `allow-same-origin`) plus a strict CSP that blocks all external network
+  access
+- Org-based identity: register with email + password, or join an org via
+  its join code
+- Per-artifact roles: `owner > editor > commenter > viewer`
+- Cross-company share links: recipient-bound (email-verified via magic
+  link) or signed (bearer-token) modes, both revocable and expirable
+- Full audit log per artifact: views, saves, link activity, permission
+  changes, comments, integrity failures
+- Soft-locked collaborative editing with lock takeover, always audited
+- Threaded comments, attributable to internal users or verified external
+  recipients
+- Dev-mode email outbox at `/outbox` — no SMTP required to try the full flow
+
+## Quickstart
+
+```bash
+cd apps/safedeck
+npm install
+npm run dev
+```
+
+Then open [http://localhost:3000](http://localhost:3000).
+
+## Demo flow
+
+1. Register an organization (or join one with its join code).
+2. Create a new artifact and paste in some HTML.
+3. Share the artifact — create a share link (recipient-bound or signed).
+4. Open `/outbox` to see the share email (and, for recipient-bound links,
+   the magic-link email) that would have been sent.
+5. Open the magic link as the recipient to verify the email and view the
+   artifact.
+
+## Environment variables
+
+| variable | required | purpose |
+|---|---|---|
+| `SAFEDECK_SECRET` | no | HMAC signing key for share-link grant cookies and magic-link tokens. If unset in development, one is auto-generated and persisted to `data/` so it survives restarts. Must be set explicitly in production. |
+| `SAFEDECK_DB_PATH` | no | Path to the SQLite database file. Defaults to a local path under `data/` if unset. |
+
+## Tech stack
+
+- [Next.js 14](https://nextjs.org/) (App Router, plain JavaScript)
+- SQLite via [`better-sqlite3`](https://github.com/WiseLibs/better-sqlite3)
+- No client framework beyond what Next.js/React provides — artifacts
+  themselves are rendered as raw sandboxed HTML, not React components
+
+See [PROTOCOL.md](./PROTOCOL.md) for the full specification of the
+integrity, sandboxing, identity, sharing, audit, collaboration, and email
+mechanisms summarized above.
+
+## Project structure
+
+```
+apps/safedeck/
+├── app/                  # Next.js App Router pages
+│   ├── ...                    # dashboard, artifact editor/viewer, /outbox, auth pages
+│   └── api/                    # Next.js route handlers
+│       ├── render/[versionId]/     # GET — sandboxed artifact render endpoint
+│       └── ...                     # artifacts, versions, share links, comments, auth
+├── lib/
+│   ├── db.js             # SQLite connection + schema/queries
+│   ├── crypto.js         # SHA-256 hashing, HMAC signing, token generation
+│   ├── auth.js           # registration, login, session handling
+│   ├── access.js         # role checks, share-link resolution, grant verification
+│   └── audit.js          # audit log writes/reads
+│   └── mail.js           # email composition + dev outbox / SMTP dispatch
+└── data/                 # SQLite database file, dev-only secret persistence
+```
