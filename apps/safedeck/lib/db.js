@@ -136,6 +136,9 @@ function migrate(db) {
   try {
     db.exec("ALTER TABLE magic_tokens ADD COLUMN purpose TEXT NOT NULL DEFAULT 'share'");
   } catch { /* column already exists */ }
+  try {
+    db.exec("ALTER TABLE orgs ADD COLUMN ai_credits INTEGER NOT NULL DEFAULT 25");
+  } catch { /* column already exists */ }
 
   db.exec(`
   CREATE INDEX IF NOT EXISTS idx_comments_artifact ON comments(artifact_id);

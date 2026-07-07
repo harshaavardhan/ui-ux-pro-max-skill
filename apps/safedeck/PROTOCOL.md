@@ -299,7 +299,74 @@ CSP from the response headers of the `/api/render/[versionId]` endpoint
 edit still always appends a brand-new immutable version, exactly as in
 Section 1 — the page-wise editing surface is a convenience layered on top
 of the protocol; it changes none of the protocol's integrity, immutability,
-or soft-lock semantics.
+or soft-lock semantics. Page-wise editing, the soft edit lock, and the
+full-source fallback (for documents with no top-level `<section>` pages, or
+via the "Edit source" toggle) are all unchanged by everything below.
+
+**Visual editor.** `app/artifacts/[id]/edit/page.js` provides a
+direct-manipulation "studio" on top of the same page model: a
+page-thumbnail rail, a live canvas, and a right-hand dock with a Design
+tab (element inspector) and an Assistant tab (AI chat, below). The current
+page is rendered in the canvas inside a sandboxed
+`<iframe sandbox="allow-scripts">` — no `allow-same-origin`, so it is an
+opaque origin exactly as described in Section 2 — with an injected editor
+runtime (`lib/editor-runtime.js`). Clicking selects an element, double-click
+enables inline (`contenteditable`) text editing, and the Design inspector
+can change text color, font size, weight, style, alignment, background
+color, corner radius, and padding; images can be replaced (uploaded as a
+`data:` URI, capped at 2 MB); elements can be duplicated, deleted, and
+reordered. The runtime and the parent app talk only via `postMessage`
+(`sd-style`, `sd-delete`, `sd-duplicate`, `sd-move`, `sd-image`,
+`sd-deselect` inbound; `sd-ready`, `sd-select`, `sd-deselect`, `sd-changed`
+outbound) — because the iframe is opaque-origin sandboxed, the editing
+surface has no way to reach the host app, the same isolation guarantee
+Section 2 establishes for rendered artifacts. The canvas preview also
+carries an injected no-network CSP `<meta>`, the same preview-only hardening
+described above for the page-wise source editor.
+
+**Clean serialization keeps integrity semantics unchanged.** This is the
+load-bearing property of the visual editor: whenever a page changes, the
+runtime serializes a *cleaned* copy of the page before it is handed back to
+the app as draft content — every injected editor artifact (the CSP
+`<meta>`, the `<style>`, the `<script>` runtime, all tagged with
+`sd-editor-*` ids) and every `data-sd-*`/`contenteditable` attribute added
+for editing purposes is stripped. Saved HTML therefore never contains any
+editor code or editor markup, the page-wise `prefix + pages[] + suffix`
+structure is preserved, and the SHA-256 fingerprint semantics of Section 1
+are untouched — a save through the visual editor still always appends a
+new immutable version, exactly like a save through the source editor.
+
+**AI editing assistant.** The Assistant tab lets an editor type a
+plain-English instruction (e.g. "make the headline bigger and bolder") and
+have `app/api/ai/edit/route.js` rewrite the *currently selected page only*,
+using the Anthropic Messages API (model `claude-opus-4-8`, adaptive
+thinking, structured JSON output of `{html, summary}`). The returned HTML
+replaces that page in the in-app draft; it is not auto-saved, so it still
+has to go through the normal save path (and thus Section 1's
+version-append semantics) to become a durable version. The AI is
+constrained by its system prompt to the same safety envelope as the render
+sandbox in Section 2: self-contained page HTML, inline styles only, no
+external URLs (images/fonts/scripts/stylesheets must be `data:` URIs), and
+no `<script src>`, `fetch`, or `XHR` — so an AI edit cannot itself
+introduce a network-exfiltration vector, and even if it tried, the render
+endpoint's real CSP (Section 2) still blocks network access at view time
+regardless of what the draft HTML contains.
+
+Every AI edit requires an Anthropic API key, from one of two sources: a
+user-supplied key, kept only in that user's browser (`localStorage`), sent
+directly with each edit request, and never persisted server-side; or the
+org's platform credits (`orgs.ai_credits`, default 25), which require
+`SAFEDECK_ANTHROPIC_KEY` to be configured server-side and are decremented
+by one per successful platform-credit edit. A user-supplied key always
+takes precedence and never consumes credits; if neither is available, the
+edit request is refused with `402`. Provider-side failures are mapped to
+typed HTTP responses — a rejected key to `401`, a provider rate limit to
+`429`, other API errors to `502`, and a safety refusal
+(`stop_reason: "refusal"`) to `422`. Every AI edit — success or otherwise
+reaching the model — is written to the artifact's audit log as `ai_edit`,
+noting the instruction and whether it drew on the user's own key or on
+platform credits, extending Section 5's audit guarantees to AI-assisted
+edits.
 
 ---
 
@@ -330,3 +397,6 @@ endpoint after the appropriate access check (Sections 2–4).
 | XSS from artifact content reaching the host application | artifact HTML is never inlined into the app's DOM; it is only ever rendered inside a sandboxed iframe without `allow-same-origin`, in an opaque origin isolated from the host |
 | Forged Microsoft SSO callback | the callback is rejected unless its `state` value matches the random state cookie set before redirecting to Microsoft, and the `id_token` is obtained via a direct, confidential-client, server-to-server exchange with Microsoft's token endpoint over TLS — an attacker cannot fabricate a valid callback without both the state secret and Microsoft's cooperation |
 | Leaked passwordless (magic) login token | 15-minute expiry, single-use consumption, and an anti-enumeration request endpoint (identical response whether or not the account exists, and no token issued for non-existent accounts) bound both the exposure window and the ability to probe for valid accounts |
+| Visual editor code leaking into a saved artifact | clean serialization strips every `sd-editor-*`-tagged node (injected CSP `<meta>`, `<style>`, runtime `<script>`) and every `data-sd-*`/`contenteditable` attribute before a page is handed back as draft content, so saved HTML never contains editor markup |
+| AI-introduced network-exfiltration vector | the AI system prompt constrains output to the render sandbox's safety envelope (inline styles only, `data:`-only media, no `<script src>`/`fetch`/`XHR`); even if that constraint were bypassed, the render endpoint's real CSP (Section 2) still blocks network access at view time regardless of draft content |
+| User's own Anthropic API key exposure | a user-supplied key is stored only in that user's browser `localStorage`, sent directly with each edit request, and never persisted server-side |

@@ -36,11 +36,23 @@ the underlying protocol is in [PROTOCOL.md](./PROTOCOL.md).
   edited page by page (select, add, delete, reorder), each with a live
   per-page preview, while saving still always appends a new immutable
   version
+- Visual editor: a Canva-style "studio" (page rail, live canvas, Design/
+  Assistant dock) for direct-manipulation editing — click to select,
+  double-click to edit text inline, adjust color/font/alignment/background/
+  radius/padding, replace images, duplicate/delete/reorder elements — all
+  inside an opaque-origin sandboxed iframe, with the saved HTML always
+  cleaned of editor markup before it becomes a new version
+- AI assistant (bring your own key or platform credits): describe an edit
+  in plain English and have it rewritten by Claude for the selected page,
+  constrained to the same no-network safety envelope as the render sandbox
 - Threaded comments, attributable to internal users or verified external
   recipients
 - Dev-mode email outbox at `/outbox` — no SMTP required to try the full flow
 - Refreshed "Aurora" visual design (mesh-gradient backdrop, glass cards,
-  Poppins/Open Sans)
+  Poppins/Open Sans), with the new visual editor styled as a "studio" layer
+  on top — frosted-glass panels, a mesh-gradient backdrop, and soft depth
+  shadows drawing on the liquid-glass / Spatial-UI (VisionOS) and Liquid
+  Glass aesthetics
 
 ## Quickstart
 
@@ -73,6 +85,12 @@ Then open [http://localhost:3000](http://localhost:3000).
 | `MS_CLIENT_ID` | no | Microsoft Entra ID application (client) ID for Outlook SSO. If unset, the `/dev/outlook` development simulator stands in for real Microsoft sign-in, and the real callback endpoint is unavailable. |
 | `MS_CLIENT_SECRET` | no | Microsoft Entra ID client secret, used for the confidential-client authorization-code exchange. |
 | `MS_TENANT` | no | Microsoft Entra ID tenant to authenticate against. Defaults to `"common"`. |
+| `SAFEDECK_ANTHROPIC_KEY` | no | Anthropic API key used to fund the AI editing assistant from the org's platform credits (`orgs.ai_credits`). Only needed if you want AI edits to work without every user supplying their own key. |
+
+The AI editing assistant always needs an Anthropic API key from one of two
+places: a user's own key, entered in the Assistant panel and stored only in
+that user's browser, or the org's platform credits, which require
+`SAFEDECK_ANTHROPIC_KEY` to be set on the server.
 
 ## Tech stack
 
@@ -90,12 +108,15 @@ mechanisms summarized above.
 ```
 apps/safedeck/
 ├── app/                  # Next.js App Router pages
-│   ├── ...                    # dashboard, artifact editor/viewer, /outbox, auth pages
+│   ├── ...                    # dashboard, artifact viewer, /outbox, auth pages
+│   ├── artifacts/[id]/edit/    # visual "studio" editor (page rail, canvas, Design/Assistant dock)
 │   ├── dev/outlook/            # development Microsoft-sign-in simulator (only reachable when MS_CLIENT_ID is unset)
 │   └── api/                    # Next.js route handlers
 │       ├── render/[versionId]/     # GET — sandboxed artifact render endpoint
 │       ├── auth/outlook/           # Outlook SSO: authorization redirect + /callback
 │       ├── auth/magic/request-login/  # POST — issue a passwordless sign-in link
+│       ├── ai/edit/                # POST — AI editing assistant (rewrites the selected page)
+│       ├── ai/credits/             # GET — org's remaining AI credits + whether a platform key is configured
 │       └── ...                     # artifacts, versions, share links, comments, auth
 ├── lib/
 │   ├── db.js             # SQLite connection + schema/queries
@@ -104,6 +125,7 @@ apps/safedeck/
 │   ├── access.js         # role checks, share-link resolution, grant verification
 │   ├── sso.js            # Microsoft Entra ID OAuth flow, state/pending-SSO cookies
 │   ├── pages.js          # page-wise document splitting/reassembly (prefix + pages[] + suffix)
+│   ├── editor-runtime.js # injected visual-editor runtime (selection, inline edit, postMessage, clean serialization)
 │   └── audit.js          # audit log writes/reads
 │   └── mail.js           # email composition + dev outbox / SMTP dispatch
 └── data/                 # SQLite database file, dev-only secret persistence
