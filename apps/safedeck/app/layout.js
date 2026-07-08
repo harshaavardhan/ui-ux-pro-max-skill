@@ -2,9 +2,10 @@ import "./globals.css";
 import Link from "next/link";
 import { currentUser } from "@/lib/auth.js";
 import { LogoutButton } from "./nav-actions.js";
+import { APP_NAME } from "@/lib/constants.js";
 
 export const metadata = {
-  title: "ShareLock — Send HTML safely",
+  title: `${APP_NAME} — Send HTML safely`,
   description:
     "Share interactive HTML decks between companies with permissions, integrity verification, and zero data leakage.",
 };
@@ -19,7 +20,7 @@ export default function RootLayout({ children }) {
         <nav className="topnav">
           <div className="topnav-inner">
             <Link href={user ? "/dashboard" : "/"} className="brand">
-              <span className="brand-mark">S</span> ShareLock
+              <span className="brand-mark">{APP_NAME[0]}</span> {APP_NAME}
             </Link>
             {user && (
               <>

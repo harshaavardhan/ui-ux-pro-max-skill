@@ -6,6 +6,7 @@ import { Comments } from "@/app/components/comments.js";
 import { LabelBadge, LabelPicker } from "@/app/components/labels.js";
 import { WindowBar } from "@/app/components/window-bar.js";
 import { ExportButtons } from "@/app/components/export-buttons.js";
+import { APP_NAME } from "@/lib/constants.js";
 
 function WatermarkOverlay({ text }) {
   return (
@@ -403,7 +404,7 @@ function People({ id }) {
         <button className="btn btn-primary btn-sm">Grant</button>
       </form>
       <p className="muted small" style={{ margin: 0 }}>
-        Grants access to registered ShareLock users (any org). For external
+        Grants access to registered {APP_NAME} users (any org). For external
         people without accounts, use Share links.
       </p>
       {perms.length > 0 && (

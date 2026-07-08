@@ -166,7 +166,7 @@ apps/safedeck/
 │   ├── labels/                  # org admin UI for the sensitivity-label taxonomy
 │   ├── dev/outlook/            # development Microsoft-sign-in simulator (only reachable when MS_CLIENT_ID is unset)
 │   └── api/                    # Next.js route handlers
-│       ├── quick/                   # POST — anonymous one-step share (paste HTML or import a URL)
+│       ├── quick/                   # POST — anonymous one-step share (link import or .html upload)
 │       ├── render/[versionId]/     # GET — sandboxed artifact render endpoint
 │       ├── auth/outlook/           # Outlook SSO: authorization redirect + /callback
 │       ├── auth/magic/request-login/  # POST — issue a passwordless sign-in link

@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth.js";
 import { getArtifact, userRoleForArtifact } from "@/lib/access.js";
 import { audit } from "@/lib/audit.js";
 import { json, fail, handler } from "@/lib/api.js";
+import { APP_NAME } from "@/lib/constants.js";
 
 function requireOwner(user, artifactId) {
   const artifact = getArtifact(artifactId);
@@ -42,7 +43,7 @@ export const POST = handler(async (req, { params }) => {
     .get(String(email || "").trim().toLowerCase());
   if (!target)
     return fail(
-      "no registered user with that email — for people outside ShareLock, use a share link instead",
+      `no registered user with that email — for people outside ${APP_NAME}, use a share link instead`,
       404
     );
   if (target.id === artifact.owner_id) return fail("that user is the owner");

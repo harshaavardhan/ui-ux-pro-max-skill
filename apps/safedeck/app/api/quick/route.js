@@ -11,7 +11,7 @@ const MAX_HTML_BYTES = 2 * 1024 * 1024;
 const EXPIRY_CHOICES = [1, 7, 30];
 const DEFAULT_EXPIRY_DAYS = 7;
 
-// Anonymous one-step share: paste HTML (or import a URL) and get back a
+// Anonymous one-step share: drop/upload an .html file (or import a URL) and get back a
 // safe, sandboxed, tamper-evident link — no account required. Content is
 // encrypted at rest, links expire by default, and anonymous artifacts are
 // permanently deleted once their link expires (see lib/purge.js).
@@ -26,7 +26,7 @@ export const POST = handler(async (req) => {
     html = await importHtmlFromUrl(url); // throws a 400 on bad/unsafe URL
     importedFrom = String(url).trim();
   }
-  if (!html || !String(html).trim()) return fail("paste some HTML or a URL to import");
+  if (!html || !String(html).trim()) return fail("provide a link or an .html file");
   if (Buffer.byteLength(html, "utf8") > MAX_HTML_BYTES)
     return fail("content exceeds the 2 MB limit", 413);
 

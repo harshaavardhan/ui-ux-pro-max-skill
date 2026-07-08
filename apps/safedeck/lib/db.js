@@ -176,7 +176,7 @@ function migrate(db) {
     "INSERT OR IGNORE INTO orgs (id, name, join_code) VALUES ('org_public', 'Public quick shares', '__public__')"
   ).run();
   db.prepare(
-    "INSERT OR IGNORE INTO users (id, org_id, email, name, password_hash) VALUES ('usr_public', 'org_public', 'public@safedeck.local', 'Anonymous', NULL)"
+    "INSERT OR IGNORE INTO users (id, org_id, email, name, password_hash) VALUES ('usr_public', 'org_public', 'public@sharelock.local', 'Anonymous', NULL)"
   ).run();
 }
 

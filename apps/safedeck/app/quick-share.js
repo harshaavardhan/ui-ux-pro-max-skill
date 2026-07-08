@@ -3,8 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ExportButtons } from "@/app/components/export-buttons.js";
+import { APP_NAME } from "@/lib/constants.js";
 
-const WORDMARK = "SHARELOCK";
+const WORDMARK = APP_NAME.toUpperCase();
+const WORDMARK_LETTERS = WORDMARK.split("").map((ch, i) => (
+  <span key={i} aria-hidden="true">{ch}</span>
+));
 
 export function QuickShare({ loggedIn }) {
   const [url, setUrl] = useState("");
@@ -92,9 +96,7 @@ export function QuickShare({ loggedIn }) {
       <section className="hero-stage">
         <div className="hero-block" aria-hidden="true" />
         <h1 className="hero-word" aria-label={WORDMARK}>
-          {WORDMARK.split("").map((ch, i) => (
-            <span key={i} aria-hidden="true">{ch}</span>
-          ))}
+          {WORDMARK_LETTERS}
         </h1>
         <p className="hero-tag">
           Paste a Claude artifact link — or drop an HTML file — and send one
@@ -123,7 +125,7 @@ export function QuickShare({ loggedIn }) {
                   placeholder="Paste a link — Claude artifact or any HTML page"
                 />
               )}
-              <button className="hero-go" disabled={busy || (!url.trim() && !fileHtml)}>
+              <button className="btn btn-primary hero-go" disabled={busy || (!url.trim() && !fileHtml)}>
                 {busy ? "Sealing…" : "Create safe link"}
               </button>
             </form>
@@ -151,10 +153,10 @@ export function QuickShare({ loggedIn }) {
             </div>
           </>
         ) : (
-          <div className="quick-card quick-success">
+          <div className="card quick-success">
             <div className="quick-check">✓</div>
-            <h2 style={{ margin: "0 0 4px" }}>Your safe link is ready</h2>
-            <p className="muted small" style={{ marginTop: 0 }}>
+            <h2>Your safe link is ready</h2>
+            <p className="muted small">
               Anyone with this link can view it. It renders in a locked-down
               sandbox and its fingerprint is verified on every open.
             </p>
@@ -163,7 +165,7 @@ export function QuickShare({ loggedIn }) {
               <button className="btn btn-secondary btn-sm" onClick={copy}>{copied ? "Copied!" : "Copy"}</button>
               <a className="btn btn-primary btn-sm" href={result.url} target="_blank" rel="noreferrer">Open</a>
             </div>
-            <div className="mono muted" style={{ fontSize: "0.72rem", marginTop: 8 }}>
+            <div className="mono muted quick-fingerprint">
               fingerprint {result.sha256.slice(0, 24)}…
               {result.expiresAt && (
                 <> · expires {new Date(result.expiresAt).toLocaleDateString()} — then permanently deleted</>
@@ -174,7 +176,7 @@ export function QuickShare({ loggedIn }) {
               Download options
             </button>
             {showDownloads && (
-              <div className="row" style={{ justifyContent: "center", gap: 10, marginTop: 10 }}>
+              <div className="row" style={{ justifyContent: "center", marginTop: 10 }}>
                 <ExportButtons artifactId={result.artifactId} linkToken={result.token} />
               </div>
             )}

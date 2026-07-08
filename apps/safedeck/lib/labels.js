@@ -1,5 +1,6 @@
 import db from "./db.js";
 import { randomId, randomUuid } from "./crypto.js";
+import { APP_NAME } from "./constants.js";
 
 // Default Purview-style taxonomy seeded for every new organization.
 // rank orders sensitivity; policy fields are enforced server-side.
@@ -53,21 +54,11 @@ export function clampExpiry(label, expiresAt) {
 export function checkAiAllowed(label) {
   if (!label) return null;
   if (!label.allow_ai)
-    return `AI editing is disabled for “${label.name}” content — its policy keeps content from leaving ShareLock`;
+    return `AI editing is disabled for “${label.name}” content — its policy keeps content from leaving ${APP_NAME}`;
   return null;
 }
 
 // MSIP-compatible property set for exports (what MS Purview writes into
-// Office files). setDate/method mirror the real convention.
-export function msipProperties(label, { siteId = "" } = {}) {
-  if (!label) return {};
-  const g = label.guid;
-  return {
-    [`MSIP_Label_${g}_Enabled`]: "true",
-    [`MSIP_Label_${g}_Name`]: label.name,
-    [`MSIP_Label_${g}_Method`]: "Privileged",
-    [`MSIP_Label_${g}_SetDate`]: new Date().toISOString(),
-    [`MSIP_Label_${g}_SiteId`]: siteId,
-    "ShareLock_Sensitivity": label.name,
-  };
-}
+// Office files) lives in lib/export/label-meta.js, which is pure and
+// db-free; re-exported here for convenience.
+export { msipProperties } from "./export/label-meta.js";

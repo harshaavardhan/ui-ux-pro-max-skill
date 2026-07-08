@@ -237,9 +237,9 @@ forwarding the URL is equivalent to forwarding access.
 
 ### Anonymous quick shares
 
-The front page offers a no-account, one-step path: a visitor pastes HTML,
-uploads an `.html` file, or imports a URL, and receives a **signed** share
-link immediately. Such artifacts are owned by a system account
+The front page offers a no-account, one-step path: a visitor pastes a link
+(imported server-side behind SSRF guards) or drops an `.html` file, and
+receives a **signed** share link immediately. Such artifacts are owned by a system account
 (`usr_public`) that has no password and cannot be signed into, so they never
 surface in any real user's workspace and are effectively immutable snapshots
 — editing requires signing in, which makes new artifacts yours. A quick

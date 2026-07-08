@@ -5,10 +5,11 @@ import { getArtifact, userRoleForArtifact, hasRole } from "@/lib/access.js";
 import { getArtifactLabel, checkAiAllowed } from "@/lib/labels.js";
 import { audit } from "@/lib/audit.js";
 import { json, fail, handler } from "@/lib/api.js";
+import { APP_NAME } from "@/lib/constants.js";
 
 const MAX_PAGE_BYTES = 300 * 1024;
 
-const SYSTEM = `You are ShareLock's page editor. You receive the HTML source of one page (a fragment of a larger deck) and an instruction describing how to change it.
+const SYSTEM = `You are ${APP_NAME}'s page editor. You receive the HTML source of one page (a fragment of a larger deck) and an instruction describing how to change it.
 
 Rules:
 - Return the FULL modified page HTML, preserving the outer element (e.g. the <section> wrapper) and everything the instruction doesn't ask you to change.

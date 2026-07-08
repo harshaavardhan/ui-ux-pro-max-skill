@@ -4,6 +4,7 @@ import { resolveLinkByToken, isLinkActive, linkRecipients } from "@/lib/access.j
 import { sendMail } from "@/lib/mail.js";
 import { audit } from "@/lib/audit.js";
 import { json, fail, handler } from "@/lib/api.js";
+import { APP_NAME } from "@/lib/constants.js";
 
 const MAGIC_MINUTES = 15;
 
@@ -33,7 +34,7 @@ export const POST = handler(async (req) => {
     const verifyUrl = `${origin}/api/auth/magic/verify?token=${token}`;
     sendMail({
       to: cleanEmail,
-      subject: `Verify your access to “${artifact?.title || "an artifact"}” on ShareLock`,
+      subject: `Verify your access to “${artifact?.title || "an artifact"}” on ${APP_NAME}`,
       body: `Someone shared “${artifact?.title}” with ${cleanEmail}. Click the link below within ${MAGIC_MINUTES} minutes to verify this address and open it. The link works once.\n\n${verifyUrl}`,
       link: verifyUrl,
     });

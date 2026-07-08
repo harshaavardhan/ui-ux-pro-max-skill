@@ -13,6 +13,7 @@ import fs from "fs";
 import { chromium } from "playwright-core";
 import { PDFDocument } from "pdf-lib";
 import { xmlEscape, msipKeyValuePairs, msipProperties } from "./label-meta.js";
+import { APP_NAME } from "../constants.js";
 
 // Candidate Chromium binaries, in resolution order.
 const CHROMIUM_CANDIDATES = [
@@ -191,9 +192,9 @@ export async function htmlToPdf(
 
   // ---- Post-process metadata with pdf-lib ----
   const doc = await PDFDocument.load(pdfBytes);
-  doc.setTitle(title || "ShareLock Export");
-  doc.setCreator("ShareLock");
-  doc.setProducer("ShareLock Export");
+  doc.setTitle(title || `${APP_NAME} Export`);
+  doc.setCreator(APP_NAME);
+  doc.setProducer(`${APP_NAME} Export`);
   if (label) {
     doc.setSubject(`Sensitivity: ${label.name}`);
     // Embed each MSIP property as a "key=value" keyword so DLP keyword

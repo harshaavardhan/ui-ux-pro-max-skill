@@ -7,6 +7,7 @@
 import HTMLtoDOCX from "html-to-docx";
 import JSZip from "jszip";
 import { xmlEscape, msipProperties } from "./label-meta.js";
+import { APP_NAME } from "../constants.js";
 
 const CUSTOM_XML_PATH = "docProps/custom.xml";
 const CUSTOM_CONTENT_TYPE =
@@ -121,7 +122,7 @@ export async function htmlToDocxBuffer(html, { title, label } = {}) {
     : null;
 
   const options = {
-    title: title || "ShareLock Export",
+    title: title || `${APP_NAME} Export`,
     orientation: "landscape",
     margins: { top: 720, right: 720, bottom: 720, left: 720 },
     table: { row: { cantSplit: true } },

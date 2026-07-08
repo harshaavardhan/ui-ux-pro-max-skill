@@ -3,6 +3,7 @@ import { randomToken } from "@/lib/crypto.js";
 import { sendMail } from "@/lib/mail.js";
 import { audit } from "@/lib/audit.js";
 import { json, fail, handler } from "@/lib/api.js";
+import { APP_NAME } from "@/lib/constants.js";
 
 const MAGIC_MINUTES = 15;
 
@@ -25,8 +26,8 @@ export const POST = handler(async (req) => {
     const verifyUrl = `${origin}/api/auth/magic/verify?token=${token}`;
     sendMail({
       to: cleanEmail,
-      subject: "Your ShareLock sign-in link",
-      body: `Click within ${MAGIC_MINUTES} minutes to sign in to ShareLock. The link works once.\n\n${verifyUrl}\n\nIf you didn't request this, ignore this email.`,
+      subject: `Your ${APP_NAME} sign-in link`,
+      body: `Click within ${MAGIC_MINUTES} minutes to sign in to ${APP_NAME}. The link works once.\n\n${verifyUrl}\n\nIf you didn't request this, ignore this email.`,
       link: verifyUrl,
     });
     audit(null, cleanEmail, "login_link_requested", "");

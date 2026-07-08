@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { APP_NAME } from "@/lib/constants.js";
 
 // ---- Inspector: style controls for the selected element ----
 export function Inspector({ info, onStyle, onDelete, onDuplicate, onMove, onImage }) {
@@ -225,7 +226,7 @@ export function AiAssistant({ artifactId, pageIndex, getPageHtml, onResult, cred
           <p className="muted" style={{ fontSize: "0.72rem", margin: "0 0 6px" }}>
             Paste your Anthropic API key to use your own credits. It's stored only
             in this browser (localStorage) and sent directly with each edit
-            request — ShareLock never persists it.
+            request — {APP_NAME} never persists it.
           </p>
           <input
             type="password"

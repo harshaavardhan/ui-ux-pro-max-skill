@@ -11,10 +11,10 @@ export function xmlEscape(value) {
     .replace(/'/g, "&apos;");
 }
 
-// MSIP-compatible property set for exports — a pure mirror of
-// lib/labels.js#msipProperties, duplicated here so the PDF/DOCX exporters
-// stay free of the db-backed labels module and remain importable under plain
-// Node. Keep this in sync with lib/labels.js if the label schema changes.
+// MSIP-compatible property set for exports (what MS Purview writes into
+// Office files). Lives here — not in the db-backed labels module — so the
+// PDF/DOCX exporters remain importable under plain Node; lib/labels.js
+// re-exports it. setDate/method mirror the real convention.
 export function msipProperties(label, { siteId = "" } = {}) {
   if (!label) return {};
   const g = label.guid;
