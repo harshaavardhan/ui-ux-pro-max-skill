@@ -1,5 +1,6 @@
 import db from "@/lib/db.js";
 import { resolveAccess, hasRole } from "@/lib/access.js";
+import { getArtifactLabel } from "@/lib/labels.js";
 import { json, fail, handler } from "@/lib/api.js";
 
 // Artifact metadata + version history. Accessible to members with a role,
@@ -25,6 +26,8 @@ export const GET = handler(async (req, { params }) => {
       created_at: artifact.created_at,
       current_version_id: artifact.current_version_id,
     },
+    label: getArtifactLabel(artifact),
+    viewerIdentity: access.actor,
     versions,
     access: {
       role: access.role,

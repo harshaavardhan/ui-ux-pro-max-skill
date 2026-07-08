@@ -1,7 +1,7 @@
 import db from "@/lib/db.js";
 import { requireUser } from "@/lib/auth.js";
 import { getArtifact, userRoleForArtifact, hasRole } from "@/lib/access.js";
-import { randomId, sha256Hex } from "@/lib/crypto.js";
+import { insertVersion } from "@/lib/versions.js";
 import { audit } from "@/lib/audit.js";
 import { json, fail, handler } from "@/lib/api.js";
 
@@ -20,10 +20,8 @@ export const POST = handler(async (req, { params }) => {
   if (Buffer.byteLength(html, "utf8") > MAX_HTML_BYTES)
     return fail("HTML exceeds 2 MB limit", 413);
 
-  const digest = sha256Hex(html);
-  const versionId = randomId("ver");
   let versionNumber;
-
+  let created;
   const tx = db.transaction(() => {
     const last = db
       .prepare(
@@ -31,12 +29,15 @@ export const POST = handler(async (req, { params }) => {
       )
       .get(artifact.id);
     versionNumber = (last?.n || 0) + 1;
-    db.prepare(
-      `INSERT INTO versions (id, artifact_id, version_number, author_id, html, sha256, note)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).run(versionId, artifact.id, versionNumber, user.id, html, digest, String(note || ""));
+    created = insertVersion({
+      artifactId: artifact.id,
+      versionNumber,
+      authorId: user.id,
+      html,
+      note: String(note || ""),
+    });
     db.prepare("UPDATE artifacts SET current_version_id = ? WHERE id = ?").run(
-      versionId,
+      created.id,
       artifact.id
     );
   });
@@ -46,7 +47,7 @@ export const POST = handler(async (req, { params }) => {
     artifact.id,
     user.email,
     "version_saved",
-    `v${versionNumber} sha256=${digest.slice(0, 16)}`
+    `v${versionNumber} sha256=${created.sha256.slice(0, 16)}`
   );
-  return json({ ok: true, versionId, versionNumber, sha256: digest });
+  return json({ ok: true, versionId: created.id, versionNumber, sha256: created.sha256 });
 });

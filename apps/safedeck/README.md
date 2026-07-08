@@ -54,6 +54,46 @@ the underlying protocol is in [PROTOCOL.md](./PROTOCOL.md).
   constrained to the same no-network safety envelope as the render sandbox
 - Threaded comments, attributable to internal users or verified external
   recipients
+- Sensitivity labels (MS Purview-compatible): per-org label taxonomy
+  (`Public`/`Internal`/`Confidential`/`Highly Confidential` seeded by
+  default), each with a color, rank, stable GUID (paste in a real
+  Microsoft tenant label GUID for interop), and server-enforced policy —
+  whether external/anyone-with-link sharing is allowed, whether the AI
+  assistant may touch the content, a maximum link expiry, and whether a
+  watermark is required. Managed at `/labels`, assigned per artifact via
+  `PATCH /api/artifacts/[id]/label`. A watermark label overlays a dynamic
+  diagonal mark (label + viewer identity) in the viewer chrome only — it
+  never touches the artifact bytes or its SHA-256 fingerprint
+- PDF/DOCX export (`GET /api/export/pdf|docx`): headless-Chromium PDF (one
+  page per top-level `<section>`, backgrounds/gradients preserved) and
+  html-to-docx DOCX (inline formatting/alignment preserved), both
+  integrity-checked before export and fully audited. Labeled artifacts get
+  MSIP-compatible metadata written into the export — real
+  `MSIP_Label_<guid>_*` custom properties in DOCX's `docProps/custom.xml`,
+  the same key/value pairs in the PDF's `Keywords` field plus a stamped
+  watermark/banner — so Microsoft DLP and endpoint tooling recognize the
+  classification outside SafeDeck too (classification/marking only; RMS/AIP
+  encryption-backed labels are out of scope and would need Microsoft's MIP
+  SDK)
+- Encryption at rest: version HTML is stored AES-256-GCM encrypted
+  (`lib/versions.js`, the single read/write path), keyed from
+  `SAFEDECK_DATA_KEY` or an HKDF-derived key. The SHA-256 fingerprint is
+  computed over the plaintext, so Section 1's decrypt → re-hash → compare
+  integrity protocol is unchanged; a failed decryption is itself an
+  integrity violation. Legacy plaintext rows remain readable
+- Quick-share expiry & auto-delete: anonymous front-page shares now require
+  a 1/7/30-day expiry (default 7); once every link on an anonymous artifact
+  has expired or been revoked, `lib/purge.js` permanently deletes it —
+  versions, links, comments, and audit rows — backing the front page's
+  no-sign-in / encrypted-at-rest / not-kept-after-expiry promise. The
+  success card also offers a "Download options" reveal for PDF/DOC via the
+  link token
+- Owner-only analytics dashboard per artifact (`/artifacts/[id]/analytics`,
+  API `/api/artifacts/[id]/analytics`): views over 30 days, unique viewers,
+  channel breakdown (members / verified recipients / anyone-with-link),
+  exports, AI edits, comments, share-link status, and recent activity —
+  built entirely from existing server-side audit logs, with no tracking
+  code added to artifacts
 - Dev-mode email outbox at `/outbox` — no SMTP required to try the full flow
 - Refreshed "Aurora" visual design (mesh-gradient backdrop, glass cards,
   Poppins/Open Sans), with the new visual editor styled as a "studio" layer
@@ -93,6 +133,8 @@ Then open [http://localhost:3000](http://localhost:3000).
 | `MS_CLIENT_SECRET` | no | Microsoft Entra ID client secret, used for the confidential-client authorization-code exchange. |
 | `MS_TENANT` | no | Microsoft Entra ID tenant to authenticate against. Defaults to `"common"`. |
 | `SAFEDECK_ANTHROPIC_KEY` | no | Anthropic API key used to fund the AI editing assistant from the org's platform credits (`orgs.ai_credits`). Only needed if you want AI edits to work without every user supplying their own key. |
+| `SAFEDECK_DATA_KEY` | no | 32-byte, base64url-encoded key used to AES-256-GCM encrypt version HTML at rest. If unset, an encryption key is HKDF-derived from `SAFEDECK_SECRET` instead. |
+| `SAFEDECK_CHROMIUM_PATH` | no | Path to a Chromium binary used for headless PDF export. Auto-detected in development if unset; set explicitly in production if no compatible Chromium is found automatically. |
 
 The AI editing assistant always needs an Anthropic API key from one of two
 places: a user's own key, entered in the Assistant panel and stored only in
@@ -107,8 +149,8 @@ that user's browser, or the org's platform credits, which require
   themselves are rendered as raw sandboxed HTML, not React components
 
 See [PROTOCOL.md](./PROTOCOL.md) for the full specification of the
-integrity, sandboxing, identity, sharing, audit, collaboration, and email
-mechanisms summarized above.
+integrity, sandboxing, identity, sharing, audit, collaboration, email, and
+sensitivity-label/document-egress mechanisms summarized above.
 
 ## Project structure
 
@@ -118,6 +160,8 @@ apps/safedeck/
 │   ├── page.js + quick-share.js  # the simple front page: paste/upload/import → safe link
 │   ├── ...                    # dashboard, artifact viewer, /outbox, auth pages
 │   ├── artifacts/[id]/edit/    # visual "studio" editor (page rail, canvas, Design/Assistant dock)
+│   ├── artifacts/[id]/analytics/  # owner-only per-artifact analytics dashboard
+│   ├── labels/                  # org admin UI for the sensitivity-label taxonomy
 │   ├── dev/outlook/            # development Microsoft-sign-in simulator (only reachable when MS_CLIENT_ID is unset)
 │   └── api/                    # Next.js route handlers
 │       ├── quick/                   # POST — anonymous one-step share (paste HTML or import a URL)
@@ -126,6 +170,10 @@ apps/safedeck/
 │       ├── auth/magic/request-login/  # POST — issue a passwordless sign-in link
 │       ├── ai/edit/                # POST — AI editing assistant (rewrites the selected page)
 │       ├── ai/credits/             # GET — org's remaining AI credits + whether a platform key is configured
+│       ├── export/[format]/        # GET — PDF/DOCX export (integrity-checked, label-marked, audited)
+│       ├── labels/                 # sensitivity-label taxonomy CRUD (per org)
+│       ├── artifacts/[id]/label/   # PATCH — assign/clear an artifact's sensitivity label
+│       ├── artifacts/[id]/analytics/  # GET — owner-only analytics for one artifact
 │       └── ...                     # artifacts, versions, share links, comments, auth
 ├── lib/
 │   ├── db.js             # SQLite connection + schema/queries (seeds the public quick-share account)
@@ -136,6 +184,10 @@ apps/safedeck/
 │   ├── pages.js          # page-wise document splitting/reassembly (prefix + pages[] + suffix)
 │   ├── import.js         # SSRF-guarded URL fetch for quick-share imports
 │   ├── editor-runtime.js # injected visual-editor runtime (selection, inline edit, postMessage, clean serialization)
+│   ├── versions.js       # single read/write path for version content — AES-256-GCM encrypt/decrypt, SHA-256 over plaintext
+│   ├── labels.js         # sensitivity-label taxonomy, per-org defaults, server-side policy checks, MSIP property builder
+│   ├── purge.js          # deletes anonymous quick-share artifacts once all their links have expired/been revoked
+│   ├── export/           # htmlToPdf (headless Chromium + pdf-lib) and htmlToDocxBuffer (html-to-docx + MSIP zip post-processing)
 │   └── audit.js          # audit log writes/reads
 │   └── mail.js           # email composition + dev outbox / SMTP dispatch
 └── data/                 # SQLite database file, dev-only secret persistence

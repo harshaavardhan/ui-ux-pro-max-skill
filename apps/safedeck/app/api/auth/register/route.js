@@ -3,6 +3,7 @@ import db from "@/lib/db.js";
 import { randomId, randomToken, hashPassword } from "@/lib/crypto.js";
 import { createSession } from "@/lib/auth.js";
 import { pendingSso } from "@/lib/sso.js";
+import { seedDefaultLabels } from "@/lib/labels.js";
 import { json, fail, handler } from "@/lib/api.js";
 
 export const POST = handler(async (req) => {
@@ -47,6 +48,7 @@ export const POST = handler(async (req) => {
       String(orgName).trim(),
       randomToken(6)
     );
+    seedDefaultLabels(orgId);
   }
 
   const userId = randomId("usr");

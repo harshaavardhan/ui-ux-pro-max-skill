@@ -680,6 +680,38 @@ table.list tr:hover td { background: #f8f8ff; }
 }
 .quick-another:hover { text-decoration: underline; }
 .quick-signin { margin-top: 22px; }
+.quick-dl-toggle {
+  margin-top: 14px;
+  border: none; background: none; cursor: pointer;
+  color: var(--muted); font-size: 0.82rem;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.quick-dl-toggle:hover { color: var(--primary-dark); }
+
+/* Sensitivity-label watermark overlay (viewer chrome — never in the artifact) */
+.viewer-wrap { position: relative; }
+.wm-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  display: flex;
+  flex-wrap: wrap;
+  align-content: space-around;
+  justify-content: space-around;
+  opacity: 0.14;
+}
+.wm-overlay span {
+  transform: rotate(-24deg);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #64748b;
+  white-space: nowrap;
+  padding: 34px 40px;
+}
 
 /* Landing hero */
 .hero-badge {

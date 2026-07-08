@@ -10,7 +10,7 @@ and the sender can trust that the artifact cannot be used against the
 recipient (or vice versa). This document specifies the protocol — SAP — that
 makes both guarantees hold.
 
-SAP has seven parts:
+SAP has eight parts:
 
 1. Integrity (tamper-evidence)
 2. Safe rendering sandbox
@@ -19,6 +19,7 @@ SAP has seven parts:
 5. Audit trail
 6. Collaboration semantics
 7. Email flow
+8. Sensitivity labels & document egress
 
 ---
 
@@ -55,6 +56,25 @@ parties on a call, in an email thread, or in a chat message compare
 fingerprints out-of-band and independently confirm they are looking at the
 same bytes, the same way you'd verify a PGP key fingerprint or an SSH host
 key.
+
+**Encryption at rest.** Version `html` is stored AES-256-GCM encrypted.
+`lib/versions.js` is the single read/write path for version content — every
+insert encrypts, every read decrypts — so there is exactly one place where
+this can go wrong, not one per call site. The encryption key comes from
+`SAFEDECK_DATA_KEY` (a 32-byte, base64url-encoded key) when set, or is
+otherwise HKDF-derived from the server secret (`SAFEDECK_SECRET`).
+
+This is deliberately layered *underneath* the integrity model above, not
+instead of it: the SHA-256 fingerprint is computed over the **plaintext**
+HTML, exactly as before encryption was introduced, so the verification
+protocol is unchanged — decrypt, recompute the digest over the plaintext,
+compare to the stored digest, and only then serve. A decryption failure
+(wrong key, corrupted ciphertext) is treated as an integrity violation just
+like a hash mismatch: `409 Conflict`, with an `integrity_failure` entry
+written to the audit log, and the artifact is not served. Version rows
+written before encryption was introduced remain stored as plaintext; the
+read path recognizes both formats, so legacy rows stay readable without a
+migration.
 
 ---
 
@@ -404,6 +424,130 @@ endpoint after the appropriate access check (Sections 2–4).
 
 ---
 
+## 8. Sensitivity labels & document egress
+
+The sections above establish that an artifact's *bytes* can be trusted
+(Section 1) and that its *rendering* is contained (Section 2). This section
+adds a third guarantee: that an artifact's *distribution and export* obey
+an organization's own classification policy, in a form that is compatible
+with Microsoft Purview — the classification system most enterprise
+counterparties already run.
+
+**Label taxonomy.** Each organization has its own set of sensitivity
+labels, kept in a `labels` table. Four labels are seeded automatically for
+every new org: `Public`, `Internal`, `Confidential`, and `Highly
+Confidential`. A label has:
+
+| field | meaning |
+|---|---|
+| `name` | display name |
+| `color` | swatch shown wherever the label appears |
+| `rank` | ordering (higher rank = more sensitive) |
+| `guid` | a stable identifier — a random UUID by default, but an admin may instead paste in their organization's real Microsoft tenant label GUID, which is what makes the interop metadata below line up with the org's actual Purview taxonomy rather than a SafeDeck-local one |
+| `allow_external` | whether the label permits share links at all |
+| `allow_signed` | whether the label permits "anyone with the link" (signed-mode) links, as opposed to recipient-bound only |
+| `allow_ai` | whether the AI editing assistant (Section 6) may be used on this content |
+| `max_expiry_days` | the longest link lifetime the label allows |
+| `watermark` | whether viewing/exporting the artifact overlays a watermark |
+
+Labels are managed by org admins at `/labels`, backed by the `/api/labels`
+API. Owners assign a label to an individual artifact via
+`PATCH /api/artifacts/[id]/label`; an artifact with no label is
+unrestricted by this section.
+
+**Enforcement is server-side at every relevant boundary — never a client
+hint.** Three points check the assigned label before acting:
+
+- **Share-link creation.** If the label's `allow_external` is false, no
+  share link — of either mode — can be created for that artifact at all.
+  If `allow_signed` is false, only recipient-bound links (Section 4) may be
+  created; a request for a signed link is refused. Either rejection is a
+  `403`, logged to the audit trail as `share_blocked_by_label`.
+- **AI editing.** If `allow_ai` is false, the AI editing assistant (Section
+  6) refuses the request before it ever calls the model — blocked-label
+  content is never sent to the LLM at all. This is a `403`, logged as
+  `ai_blocked_by_label`.
+- **Expiry clamping.** A link's requested expiry is clamped down to
+  `max_expiry_days` from now if it would otherwise be longer (or
+  unbounded); the label can shorten a requested lifetime but a link is
+  never granted a *longer* lifetime than the label allows.
+
+**Watermarks live in the viewer chrome, never in the artifact bytes.** When
+a label's `watermark` flag is set, viewing (and exporting) the artifact
+overlays a dynamic diagonal watermark — the label name plus the current
+viewer's identity — on top of the rendered content. This overlay is drawn
+by the viewer chrome around the sandboxed iframe from Section 2; it is
+never injected into the artifact's HTML. That distinction matters for
+Section 1: because the watermark never touches version bytes, the stored
+SHA-256 fingerprint is completely unaffected by who is viewing an artifact
+or what label is attached to it — the fingerprint two parties compare
+out-of-band still identifies the same content regardless of watermarking.
+
+**Export pipeline: PDF and DOCX.** `GET /api/export/pdf|docx?artifact=&
+version=&link=&paper=A4|Letter&orientation=` produces a downloadable file
+from a version. Access follows the same rules as viewing: a `viewer` role
+(member session or share-link token) is sufficient, so external recipients
+export through their existing share-link token exactly as they view.
+Before anything is exported, integrity is re-verified precisely as in
+Section 1 — decrypt (Section 1's encryption-at-rest), recompute the
+SHA-256 digest, and compare to the stored value — and a mismatch or
+decryption failure blocks the export with `409` the same way it blocks a
+render. Every export, successful or not, is written to the audit log.
+
+- **PDF.** Rendered via a headless-Chromium print pass (the binary path is
+  configurable through `SAFEDECK_CHROMIUM_PATH`, and is auto-detected in
+  development when unset). Each top-level `<section>` — the same page unit
+  Section 6 defines for page-wise editing — becomes exactly one PDF page;
+  backgrounds and gradients are preserved rather than flattened to white.
+  When the artifact's label requires a watermark, both the diagonal
+  watermark and a marking banner are stamped into the PDF itself (unlike
+  the viewer-chrome-only watermark above — an exported file has to carry
+  its own marking, since it leaves the viewer chrome behind). Metadata is
+  written with `pdf-lib`.
+- **DOCX.** Produced by converting the artifact HTML to `.docx` while
+  preserving inline formatting and alignment. A labeled artifact gets a
+  marking line and header identifying its classification. MSIP properties
+  (below) are injected by post-processing the generated file as a zip.
+
+**MSIP-compatible interop metadata.** To make a label recognizable to
+Microsoft's own DLP and endpoint tooling — not just inside SafeDeck — every
+export of a labeled artifact carries the same metadata convention Purview
+itself writes into Office files:
+
+- **DOCX** gets real `MSIP_Label_<guid>_Enabled`, `_Name`, `_Method`,
+  `_SetDate`, and `_SiteId` custom document properties, written into
+  `docProps/custom.xml`. This is the exact property naming Microsoft's own
+  tooling looks for, which is why a label's `guid` can be set to an org's
+  real Microsoft tenant label GUID instead of SafeDeck's random default —
+  doing so makes an exported document read, to Microsoft DLP and endpoint
+  agents, as if it had been labeled by Purview directly.
+- **PDF** gets the same key/value pairs written into the PDF's `Keywords`
+  metadata field, plus the stamped visual watermark/banner described above
+  (PDF viewers don't honor custom document properties as policy the way
+  Office applications do, so the visual mark carries the classification
+  for PDFs where the metadata alone might go unread).
+
+Stated plainly, as a caveat rather than a limitation to paper over: this is
+classification, marking, policy enforcement, and Microsoft-tooling
+interoperability — it is **not** Microsoft RMS/AIP-style encryption-backed
+labeling. Real encryption-enforced labels require Microsoft's MIP SDK and
+are out of scope here.
+
+**Quick-share expiry and auto-delete.** Anonymous front-page shares
+(Section 4) now require an expiry at creation time — 1, 7, or 30 days,
+defaulting to 7 — rather than the open-ended lifetime they could
+previously be given. `lib/purge.js` permanently deletes an anonymous
+artifact — its versions, share links, comments, and audit rows, all of it
+— once every link ever issued for it has expired or been revoked. There is
+no separate cron job: purging is invoked lazily, as a side effect of the
+next quick-share creation or share-link resolution request, so an
+artifact's actual deletion happens the first time anything touches the
+system after its links have all lapsed. This is what backs the front
+page's promise to anonymous users: no sign-in required, encrypted at rest
+(Section 1), and not kept once access to it has expired.
+
+---
+
 ## Threat model
 
 | threat | mitigation |
@@ -420,3 +564,7 @@ endpoint after the appropriate access check (Sections 2–4).
 | Visual editor code leaking into a saved artifact | clean serialization strips every `sd-editor-*`-tagged node (injected CSP `<meta>`, `<style>`, runtime `<script>`) and every `data-sd-*`/`contenteditable` attribute before a page is handed back as draft content, so saved HTML never contains editor markup |
 | AI-introduced network-exfiltration vector | the AI system prompt constrains output to the render sandbox's safety envelope (inline styles only, `data:`-only media, no `<script src>`/`fetch`/`XHR`); even if that constraint were bypassed, the render endpoint's real CSP (Section 2) still blocks network access at view time regardless of draft content |
 | User's own Anthropic API key exposure | a user-supplied key is stored only in that user's browser `localStorage`, sent directly with each edit request, and never persisted server-side |
+| Over-shared confidential content (a link created more broadly than policy allows) | the assigned label's `allow_external`/`allow_signed` flags are checked server-side at share-link creation; a disallowed link is refused with `403` and logged as `share_blocked_by_label` |
+| Data-at-rest theft (stolen database file or disk) | version HTML is stored AES-256-GCM encrypted (`SAFEDECK_DATA_KEY` or an HKDF-derived key); the SHA-256 fingerprint is computed over the plaintext, so tamper-evidence is unaffected by the encryption layer |
+| Stale anonymous data lingering indefinitely | `lib/purge.js` permanently deletes an anonymous quick-share artifact — versions, links, comments, and audit rows — once every link on it has expired or been revoked |
+| Classified exports escaping DLP/endpoint controls once outside SafeDeck | PDF/DOCX exports of labeled artifacts carry MSIP-compatible metadata (`MSIP_Label_*` custom properties in DOCX, equivalent `Keywords` entries in PDF) so Microsoft DLP and endpoint tooling recognize the classification even after the file has left SafeDeck |

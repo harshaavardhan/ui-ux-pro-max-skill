@@ -1,6 +1,7 @@
 import db from "@/lib/db.js";
 import { resolveAccess } from "@/lib/access.js";
 import { sha256Hex } from "@/lib/crypto.js";
+import { getVersionHtml } from "@/lib/versions.js";
 import { audit } from "@/lib/audit.js";
 import { handler } from "@/lib/api.js";
 
@@ -48,8 +49,18 @@ export const GET = handler(async (req, { params }) => {
       "You do not have permission to view this artifact, or the share link is expired or revoked."
     );
 
-  // Tamper-evidence: verify content hash before serving.
-  const digest = sha256Hex(version.html);
+  // Tamper-evidence: decrypt (content is AES-256-GCM at rest), then verify
+  // the plaintext hash before serving.
+  let plainHtml;
+  try {
+    plainHtml = getVersionHtml(version);
+  } catch {
+    audit(version.artifact_id, access.actor, "integrity_failure",
+      `v${version.version_number} decryption failed (ciphertext tampered or wrong key)`);
+    return htmlError(409, "Integrity violation",
+      "The stored content could not be decrypted — it may have been tampered with. Serving has been blocked.");
+  }
+  const digest = sha256Hex(plainHtml);
   if (digest !== version.sha256) {
     audit(
       version.artifact_id,
@@ -71,7 +82,7 @@ export const GET = handler(async (req, { params }) => {
     `v${version.version_number} via ${access.via}`
   );
 
-  return new Response(version.html, {
+  return new Response(plainHtml, {
     status: 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",

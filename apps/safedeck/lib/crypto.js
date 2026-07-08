@@ -57,6 +57,51 @@ export function verifyGrant(token) {
   }
 }
 
+// ---- At-rest content encryption (AES-256-GCM) ----
+// Version HTML is stored encrypted; the SHA-256 integrity fingerprint is
+// always computed over the *plaintext*, so tamper-evidence is unchanged.
+// Key: SAFEDECK_DATA_KEY (base64url, 32 bytes) or derived from the server
+// secret via HKDF so dev environments need no extra config.
+let dataKey = null;
+function getDataKey() {
+  if (dataKey) return dataKey;
+  const explicit = process.env.SAFEDECK_DATA_KEY;
+  if (explicit) {
+    dataKey = Buffer.from(explicit, "base64url");
+    if (dataKey.length !== 32) throw new Error("SAFEDECK_DATA_KEY must be 32 bytes (base64url)");
+  } else {
+    dataKey = crypto.hkdfSync("sha256", Buffer.from(secret), Buffer.alloc(0), "safedeck-data-v1", 32);
+    dataKey = Buffer.from(dataKey);
+  }
+  return dataKey;
+}
+
+const ENC_PREFIX = "enc:v1:";
+
+export function encryptText(plain) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", getDataKey(), iv);
+  const ct = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return ENC_PREFIX + iv.toString("base64url") + ":" + tag.toString("base64url") + ":" + ct.toString("base64url");
+}
+
+export function decryptText(stored) {
+  if (!isEncrypted(stored)) return stored; // legacy plaintext rows
+  const [iv, tag, ct] = stored.slice(ENC_PREFIX.length).split(":");
+  const decipher = crypto.createDecipheriv("aes-256-gcm", getDataKey(), Buffer.from(iv, "base64url"));
+  decipher.setAuthTag(Buffer.from(tag, "base64url"));
+  return Buffer.concat([decipher.update(Buffer.from(ct, "base64url")), decipher.final()]).toString("utf8");
+}
+
+export function isEncrypted(stored) {
+  return typeof stored === "string" && stored.startsWith(ENC_PREFIX);
+}
+
+export function randomUuid() {
+  return crypto.randomUUID();
+}
+
 // Password hashing: scrypt (no external deps).
 export function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString("hex");

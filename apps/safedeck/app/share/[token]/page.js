@@ -4,6 +4,16 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Comments } from "@/app/components/comments.js";
 
+function WatermarkOverlay({ text }) {
+  return (
+    <div className="wm-overlay" aria-hidden="true">
+      {Array.from({ length: 24 }, (_, i) => (
+        <span key={i}>{text}</span>
+      ))}
+    </div>
+  );
+}
+
 export default function SharePage({ params, searchParams }) {
   const { token } = params;
   const [state, setState] = useState(null);
@@ -113,6 +123,9 @@ export default function SharePage({ params, searchParams }) {
   const versions = detail?.versions || [];
   const current = versions.find((v) => v.id === selectedVersion) || versions[0];
   const canComment = state.role === "commenter";
+  const watermarkText = state.label?.watermark
+    ? `${state.label.name} · ${state.email || "external viewer"}`
+    : null;
 
   return (
     <main className="page">
@@ -126,26 +139,58 @@ export default function SharePage({ params, searchParams }) {
                   ? `🔒 verified as ${state.email}`
                   : "shared via link"}
               </span>
+              {state.label && (
+                <span
+                  className="badge"
+                  style={{
+                    background: state.label.color + "1a",
+                    color: state.label.color,
+                    borderColor: state.label.color + "55",
+                  }}
+                >
+                  🏷 {state.label.name}
+                </span>
+              )}
               <span className="badge badge-muted">access: {state.role}</span>
               {current && (
                 <span className="badge badge-ok" title={`Full SHA-256: ${current.sha256}`}>
                   ✓ integrity verified · {current.sha256.slice(0, 16)}
                 </span>
               )}
+              {state.expiresAt && (
+                <span className="badge badge-muted">
+                  expires {new Date(state.expiresAt).toLocaleDateString()}
+                </span>
+              )}
             </div>
           </div>
+          {detail && current && (
+            <div className="row">
+              <a className="btn btn-secondary btn-sm"
+                 href={`/api/export/pdf?artifact=${detail.artifact.id}&version=${current.id}&link=${encodeURIComponent(token)}`}>
+                ⬇ PDF
+              </a>
+              <a className="btn btn-secondary btn-sm"
+                 href={`/api/export/docx?artifact=${detail.artifact.id}&version=${current.id}&link=${encodeURIComponent(token)}`}>
+                ⬇ DOC
+              </a>
+            </div>
+          )}
         </div>
 
         {err && <div className="alert alert-error">{err}</div>}
 
         {current && (
-          <iframe
-            key={current.id}
-            className="viewer-frame"
-            sandbox="allow-scripts"
-            src={`/api/render/${current.id}?link=${encodeURIComponent(token)}`}
-            title={state.title}
-          />
+          <div className="viewer-wrap">
+            <iframe
+              key={current.id}
+              className="viewer-frame"
+              sandbox="allow-scripts"
+              src={`/api/render/${current.id}?link=${encodeURIComponent(token)}`}
+              title={state.title}
+            />
+            {watermarkText && <WatermarkOverlay text={watermarkText} />}
+          </div>
         )}
         <p className="muted small" style={{ margin: "-8px 0 0" }}>
           This artifact runs in an isolated sandbox — interactive, but it cannot

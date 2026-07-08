@@ -26,6 +26,9 @@ export default function RootLayout({ children }) {
                 <Link href="/dashboard" className="small">
                   Artifacts
                 </Link>
+                <Link href="/labels" className="small">
+                  Labels
+                </Link>
                 <Link href="/outbox" className="small">
                   Dev outbox
                 </Link>

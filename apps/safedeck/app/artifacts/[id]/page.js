@@ -3,6 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Comments } from "@/app/components/comments.js";
+import { LabelBadge, LabelPicker } from "@/app/components/labels.js";
+
+function WatermarkOverlay({ text }) {
+  return (
+    <div className="wm-overlay" aria-hidden="true">
+      {Array.from({ length: 24 }, (_, i) => (
+        <span key={i}>{text}</span>
+      ))}
+    </div>
+  );
+}
 
 async function api(path, opts) {
   const res = await fetch(path, {
@@ -53,9 +64,12 @@ export default function ArtifactPage({ params }) {
       </main>
     );
 
-  const { artifact, versions, access } = data;
+  const { artifact, versions, access, label, viewerIdentity } = data;
   const current = versions.find((v) => v.id === selectedVersion) || versions[0];
   const isLatest = current?.id === artifact.current_version_id;
+  const watermarkText = label?.watermark
+    ? `${label.name} · ${viewerIdentity || ""}`
+    : null;
 
   return (
     <main className="page">
@@ -67,6 +81,14 @@ export default function ArtifactPage({ params }) {
               <span className={`badge ${access.isOwner ? "badge-info" : "badge-muted"}`}>
                 your role: {access.role}
               </span>
+              <LabelBadge label={label} />
+              {access.isOwner && (
+                <LabelPicker
+                  artifactId={id}
+                  current={label}
+                  onChanged={() => load()}
+                />
+              )}
               {current && (
                 <>
                   <span className="badge badge-muted">v{current.version_number}{isLatest ? " (latest)" : ""}</span>
@@ -78,6 +100,21 @@ export default function ArtifactPage({ params }) {
             </div>
           </div>
           <div className="row">
+            {current && (
+              <>
+                <a className="btn btn-secondary btn-sm" href={`/api/export/pdf?artifact=${id}&version=${current.id}`}>
+                  ⬇ PDF
+                </a>
+                <a className="btn btn-secondary btn-sm" href={`/api/export/docx?artifact=${id}&version=${current.id}`}>
+                  ⬇ DOC
+                </a>
+              </>
+            )}
+            {access.isOwner && (
+              <Link href={`/artifacts/${id}/analytics`} className="btn btn-secondary btn-sm">
+                Analytics
+              </Link>
+            )}
             {access.canEdit && (
               <Link href={`/artifacts/${id}/edit`} className="btn btn-secondary">
                 Edit (new version)
@@ -90,13 +127,16 @@ export default function ArtifactPage({ params }) {
         </div>
 
         {current ? (
-          <iframe
-            key={current.id}
-            className="viewer-frame"
-            sandbox="allow-scripts"
-            src={`/api/render/${current.id}`}
-            title={artifact.title}
-          />
+          <div className="viewer-wrap">
+            <iframe
+              key={current.id}
+              className="viewer-frame"
+              sandbox="allow-scripts"
+              src={`/api/render/${current.id}`}
+              title={artifact.title}
+            />
+            {watermarkText && <WatermarkOverlay text={watermarkText} />}
+          </div>
         ) : (
           <div className="alert alert-warn">No versions yet.</div>
         )}

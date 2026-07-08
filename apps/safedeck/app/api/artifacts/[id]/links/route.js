@@ -2,6 +2,7 @@ import db from "@/lib/db.js";
 import { requireUser } from "@/lib/auth.js";
 import { getArtifact, userRoleForArtifact } from "@/lib/access.js";
 import { randomId, randomToken } from "@/lib/crypto.js";
+import { getArtifactLabel, checkShareAllowed, clampExpiry } from "@/lib/labels.js";
 import { audit } from "@/lib/audit.js";
 import { sendMail } from "@/lib/mail.js";
 import { json, fail, handler } from "@/lib/api.js";
@@ -38,6 +39,16 @@ export const POST = handler(async (req, { params }) => {
   if (!["viewer", "commenter"].includes(role))
     return fail("link role must be viewer or commenter");
 
+  // Sensitivity-label policy: the label can forbid link sharing entirely,
+  // forbid anyone-with-link mode, and cap link lifetime.
+  const label = getArtifactLabel(artifact);
+  const policyError = checkShareAllowed(label, mode);
+  if (policyError) {
+    audit(artifact.id, user.email, "share_blocked_by_label", `${label.name}: ${mode}`);
+    return fail(policyError, 403);
+  }
+  const effectiveExpiry = clampExpiry(label, expiresAt || null);
+
   const emails = String(recipients || "")
     .split(/[,;\s]+/)
     .map((e) => e.trim().toLowerCase())
@@ -59,7 +70,7 @@ export const POST = handler(async (req, { params }) => {
     mode,
     role,
     emails.join(","),
-    expiresAt ? new Date(expiresAt).toISOString() : null,
+    effectiveExpiry ? new Date(effectiveExpiry).toISOString() : null,
     user.id
   );
 

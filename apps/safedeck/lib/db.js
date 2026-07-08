@@ -139,6 +139,30 @@ function migrate(db) {
   try {
     db.exec("ALTER TABLE orgs ADD COLUMN ai_credits INTEGER NOT NULL DEFAULT 25");
   } catch { /* column already exists */ }
+  try {
+    db.exec("ALTER TABLE artifacts ADD COLUMN label_id TEXT REFERENCES labels(id)");
+  } catch { /* column already exists */ }
+
+  // Sensitivity labels (MS Purview-compatible classification).
+  // guid: stable identifier written into exports as MSIP_Label_<guid>_* —
+  // admins may overwrite it with their real tenant label GUID for interop.
+  db.exec(`
+  CREATE TABLE IF NOT EXISTS labels (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL REFERENCES orgs(id),
+    guid TEXT NOT NULL,
+    name TEXT NOT NULL,
+    color TEXT NOT NULL DEFAULT '#6366f1',
+    rank INTEGER NOT NULL DEFAULT 0,
+    watermark INTEGER NOT NULL DEFAULT 0,
+    allow_external INTEGER NOT NULL DEFAULT 1,
+    allow_signed INTEGER NOT NULL DEFAULT 1,
+    allow_ai INTEGER NOT NULL DEFAULT 1,
+    max_expiry_days INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_labels_org ON labels(org_id);
+  `);
 
   db.exec(`
   CREATE INDEX IF NOT EXISTS idx_comments_artifact ON comments(artifact_id);

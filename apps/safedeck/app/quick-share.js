@@ -8,10 +8,12 @@ export function QuickShare({ loggedIn }) {
   const [html, setHtml] = useState("");
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
+  const [expiryDays, setExpiryDays] = useState(7);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [showDownloads, setShowDownloads] = useState(false);
 
   async function create(e) {
     e.preventDefault();
@@ -22,7 +24,7 @@ export function QuickShare({ loggedIn }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
-          mode === "url" ? { url, title } : { html, title }
+          mode === "url" ? { url, title, expiryDays } : { html, title, expiryDays }
         ),
       });
       const data = await res.json();
@@ -42,6 +44,7 @@ export function QuickShare({ loggedIn }) {
     setTitle("");
     setError("");
     setCopied(false);
+    setShowDownloads(false);
   }
 
   function onFile(e) {
@@ -118,14 +121,25 @@ export function QuickShare({ loggedIn }) {
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Title (optional)"
               />
+              <select
+                value={expiryDays}
+                onChange={(e) => setExpiryDays(Number(e.target.value))}
+                style={{ width: "auto", minWidth: 130 }}
+                title="The link — and the data — are deleted after this"
+              >
+                <option value={1}>Expires in 1 day</option>
+                <option value={7}>Expires in 7 days</option>
+                <option value={30}>Expires in 30 days</option>
+              </select>
               <button className="btn btn-primary" disabled={busy || (mode === "paste" ? !html.trim() : !url.trim())}>
                 {busy ? "Creating…" : "Create safe link"}
               </button>
             </div>
 
             <p className="quick-note muted">
-              🔒 Tamper-evident (SHA-256) · 🛡️ sandboxed, no data leakage · the
-              recipient just opens the link.
+              🔒 No sign-in needed · encrypted at rest · your data is not kept —
+              it's automatically deleted when the link expires · tamper-evident
+              (SHA-256) · sandboxed, no data leakage.
             </p>
           </form>
         ) : (
@@ -143,7 +157,26 @@ export function QuickShare({ loggedIn }) {
             </div>
             <div className="mono muted" style={{ fontSize: "0.72rem", marginTop: 8 }}>
               fingerprint {result.sha256.slice(0, 24)}…
+              {result.expiresAt && (
+                <> · expires {new Date(result.expiresAt).toLocaleDateString()} — then permanently deleted</>
+              )}
             </div>
+
+            <button className="quick-dl-toggle" onClick={() => setShowDownloads((s) => !s)}>
+              Download options
+            </button>
+            {showDownloads && (
+              <div className="row" style={{ justifyContent: "center", gap: 10, marginTop: 10 }}>
+                <a className="btn btn-secondary btn-sm"
+                   href={`/api/export/pdf?artifact=${result.artifactId}&link=${result.token}`}>
+                  ⬇ PDF
+                </a>
+                <a className="btn btn-secondary btn-sm"
+                   href={`/api/export/docx?artifact=${result.artifactId}&link=${result.token}`}>
+                  ⬇ DOC
+                </a>
+              </div>
+            )}
 
             <div className="quick-editcta">
               {result.mine ? (

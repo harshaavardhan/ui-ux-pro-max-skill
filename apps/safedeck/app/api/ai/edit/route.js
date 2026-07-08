@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import db from "@/lib/db.js";
 import { requireUser } from "@/lib/auth.js";
 import { getArtifact, userRoleForArtifact, hasRole } from "@/lib/access.js";
+import { getArtifactLabel, checkAiAllowed } from "@/lib/labels.js";
 import { audit } from "@/lib/audit.js";
 import { json, fail, handler } from "@/lib/api.js";
 
@@ -37,6 +38,15 @@ export const POST = handler(async (req) => {
   if (!artifact) return fail("artifact not found", 404);
   if (!hasRole(userRoleForArtifact(user, artifact), "editor"))
     return fail("editor access required", 403);
+  // Label policy: some sensitivity labels keep content from leaving
+  // SafeDeck, which rules out sending it to the AI provider.
+  const label = getArtifactLabel(artifact);
+  const aiPolicyError = checkAiAllowed(label);
+  if (aiPolicyError) {
+    audit(artifact.id, user.email, "ai_blocked_by_label", label.name);
+    return fail(aiPolicyError, 403);
+  }
+
   if (!instruction || !String(instruction).trim())
     return fail("instruction required");
   if (!html || Buffer.byteLength(html, "utf8") > MAX_PAGE_BYTES)
