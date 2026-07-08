@@ -54,8 +54,21 @@ function RegisterForm() {
   return (
     <main className="page">
       <div className="container-narrow">
-        <div className="card card-glass">
-          <h1>{isSso ? "Almost there" : "Get started"}</h1>
+        <div className="card">
+          <h1>
+            {isSso ? (
+              "Almost done."
+            ) : (
+              <>
+                Claim your <span className="grad">workspace.</span>
+              </>
+            )}
+          </h1>
+          {!isSso && (
+            <p className="muted small">
+              Create an organization or join your team with a code. Takes a minute.
+            </p>
+          )}
           {isSso && ssoIdentity && (
             <div className="alert alert-ok row" style={{ gap: 8 }}>
               <MsLogo /> Signed in with Microsoft as{" "}

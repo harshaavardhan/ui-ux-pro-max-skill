@@ -261,7 +261,7 @@ export default function LabelsPage() {
 
         <div className="stack">
           {creating && (
-            <div className="card card-glass">
+            <div className="card">
               <LabelForm
                 initial={emptyForm}
                 onSave={handleCreate}
@@ -275,7 +275,7 @@ export default function LabelsPage() {
           {labels &&
             labels.map((label) =>
               editingId === label.id ? (
-                <div className="card card-glass" key={label.id}>
+                <div className="card" key={label.id}>
                   <LabelForm
                     initial={formFromLabel(label)}
                     onSave={(form) => handleUpdate(label.id, form)}

@@ -175,7 +175,6 @@ h3 { font-weight: 800; font-size: 0.95rem; text-transform: uppercase; letter-spa
   padding: 26px;
   transition: transform 0.14s var(--ease-sharp);
 }
-.card-glass { background: var(--surface); }
 
 /* ---------------- Window chrome: HUD bar ---------------- */
 .window-bar {

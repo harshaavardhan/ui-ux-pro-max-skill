@@ -7,7 +7,7 @@ export function Inspector({ info, onStyle, onDelete, onDuplicate, onMove, onImag
   if (!info) {
     return (
       <div className="insp-empty">
-        <div className="insp-empty-icon">✏️</div>
+        <div className="insp-empty-icon">✎</div>
         <p className="muted small">
           Click any element on the page to style it. Double-click text to edit it inline.
         </p>

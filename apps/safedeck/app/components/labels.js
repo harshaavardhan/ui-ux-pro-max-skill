@@ -24,7 +24,7 @@ export function LabelBadge({ label, small }) {
         fontSize: small ? 11 : undefined,
       }}
     >
-      🏷 {label.name}
+      ● {label.name}
     </span>
   );
 }

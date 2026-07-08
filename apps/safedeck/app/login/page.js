@@ -53,9 +53,11 @@ function LoginForm() {
   return (
     <main className="page">
       <div className="container-narrow">
-        <div className="card card-glass">
-          <h1>Welcome back</h1>
-          <p className="muted small">Sign in to your SafeDeck workspace.</p>
+        <div className="card">
+          <h1>
+            Sign back <span className="grad">in.</span>
+          </h1>
+          <p className="muted small">Your workspace is where you left it.</p>
 
           <a href="/api/auth/outlook/start" className="btn btn-ms">
             <MsLogo /> Continue with Microsoft
@@ -87,7 +89,7 @@ function LoginForm() {
               style={{ width: "100%" }}
             >
               {busy
-                ? "Working…"
+                ? "Signing in…"
                 : method === "password"
                   ? "Sign in"
                   : "Email me a sign-in link"}

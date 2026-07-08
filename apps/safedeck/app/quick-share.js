@@ -159,7 +159,7 @@ export function QuickShare({ loggedIn }) {
             </div>
 
             <p className="quick-note muted">
-              🔒 No sign-in needed · encrypted at rest · your data is not kept —
+              No sign-in needed · encrypted at rest · your data is not kept —
               it's automatically deleted when the link expires · tamper-evident
               (SHA-256) · sandboxed, no data leakage.
             </p>
@@ -191,11 +191,11 @@ export function QuickShare({ loggedIn }) {
               <div className="row" style={{ justifyContent: "center", gap: 10, marginTop: 10 }}>
                 <a className="btn btn-secondary btn-sm"
                    href={`/api/export/pdf?artifact=${result.artifactId}&link=${result.token}`}>
-                  ⬇ PDF
+                  ↓ PDF
                 </a>
                 <a className="btn btn-secondary btn-sm"
                    href={`/api/export/docx?artifact=${result.artifactId}&link=${result.token}`}>
-                  ⬇ DOC
+                  ↓ DOC
                 </a>
               </div>
             )}

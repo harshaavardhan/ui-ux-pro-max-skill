@@ -90,7 +90,7 @@ export default function SharePage({ params, searchParams }) {
         <div className="container-narrow">
           <div className="card">
             <div className="badge badge-ok" style={{ marginBottom: 10 }}>
-              🔒 Recipient-bound share
+              Recipient-bound share
             </div>
             <h1>Verify your email to view</h1>
             <p className="muted small">
@@ -136,7 +136,7 @@ export default function SharePage({ params, searchParams }) {
             <div className="row small">
               <span className={`badge ${state.mode === "recipient" ? "badge-ok" : "badge-warn"}`}>
                 {state.mode === "recipient"
-                  ? `🔒 verified as ${state.email}`
+                  ? `✓ verified as ${state.email}`
                   : "shared via link"}
               </span>
               {state.label && (
@@ -148,7 +148,7 @@ export default function SharePage({ params, searchParams }) {
                     borderColor: state.label.color + "55",
                   }}
                 >
-                  🏷 {state.label.name}
+                  ● {state.label.name}
                 </span>
               )}
               <span className="badge badge-muted">access: {state.role}</span>
@@ -168,11 +168,11 @@ export default function SharePage({ params, searchParams }) {
             <div className="row">
               <a className="btn btn-secondary btn-sm"
                  href={`/api/export/pdf?artifact=${detail.artifact.id}&version=${current.id}&link=${encodeURIComponent(token)}`}>
-                ⬇ PDF
+                ↓ PDF
               </a>
               <a className="btn btn-secondary btn-sm"
                  href={`/api/export/docx?artifact=${detail.artifact.id}&version=${current.id}&link=${encodeURIComponent(token)}`}>
-                ⬇ DOC
+                ↓ DOC
               </a>
             </div>
           )}

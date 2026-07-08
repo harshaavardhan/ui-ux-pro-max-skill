@@ -104,10 +104,10 @@ export default function ArtifactPage({ params }) {
             {current && (
               <>
                 <a className="btn btn-secondary btn-sm" href={`/api/export/pdf?artifact=${id}&version=${current.id}`}>
-                  ⬇ PDF
+                  ↓ PDF
                 </a>
                 <a className="btn btn-secondary btn-sm" href={`/api/export/docx?artifact=${id}&version=${current.id}`}>
-                  ⬇ DOC
+                  ↓ DOC
                 </a>
               </>
             )}
