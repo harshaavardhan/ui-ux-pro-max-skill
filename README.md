@@ -106,12 +106,17 @@ the underlying protocol is in [PROTOCOL.md](./PROTOCOL.md).
 ## Quickstart
 
 ```bash
-cd apps/safedeck
 npm install
 npm run dev
 ```
 
 Then open [http://localhost:3000](http://localhost:3000).
+
+## Deploy
+
+See [DEPLOY.md](./DEPLOY.md) for simple, step-by-step deployment to Vercel,
+including the two serverless gotchas (SQLite persistence and headless
+Chromium for PDF export) and how to handle them.
 
 ## Demo flow
 
@@ -137,6 +142,7 @@ Then open [http://localhost:3000](http://localhost:3000).
 | `SHARELOCK_ANTHROPIC_KEY` | no | Anthropic API key used to fund the AI editing assistant from the org's platform credits (`orgs.ai_credits`). Only needed if you want AI edits to work without every user supplying their own key. |
 | `SHARELOCK_DATA_KEY` | no | 32-byte, base64url-encoded key used to AES-256-GCM encrypt version HTML at rest. If unset, an encryption key is HKDF-derived from `SHARELOCK_SECRET` instead. |
 | `SHARELOCK_CHROMIUM_PATH` | no | Path to a Chromium binary used for headless PDF export. Auto-detected in development if unset; set explicitly in production if no compatible Chromium is found automatically. |
+| `NEXT_PUBLIC_SITE_URL` | no | Your public site origin (e.g. `https://your-app.vercel.app`). Used for canonical URLs, OpenGraph tags, `sitemap.xml`, and `robots.txt`. Defaults to `http://localhost:3000`. |
 
 The AI editing assistant always needs an Anthropic API key from one of two
 places: a user's own key, entered in the Assistant panel and stored only in
@@ -157,9 +163,11 @@ sensitivity-label/document-egress mechanisms summarized above.
 ## Project structure
 
 ```
-apps/safedeck/
+.
 ├── app/                  # Next.js App Router pages
 │   ├── page.js + quick-share.js  # the front page: link or .html file → safe link
+│   ├── faq/                     # SEO FAQ + HTML-to-PDF converter comparison
+│   ├── robots.js + sitemap.js   # SEO metadata routes
 │   ├── ...                    # dashboard, artifact viewer, /outbox, auth pages
 │   ├── artifacts/[id]/edit/    # visual "studio" editor (page rail, canvas, Design/Assistant dock)
 │   ├── artifacts/[id]/analytics/  # owner-only per-artifact analytics dashboard
