@@ -1,6 +1,6 @@
-# SafeDeck
+# ShareLock
 
-SafeDeck is an enterprise platform for safely sharing interactive HTML
+ShareLock is an enterprise platform for safely sharing interactive HTML
 artifacts between companies, replacing the practice of emailing PowerPoint
 decks around. Every artifact version is content-hashed and immutable,
 every render is re-verified against that hash before it's served, and
@@ -14,8 +14,9 @@ the underlying protocol is in [PROTOCOL.md](./PROTOCOL.md).
 
 ## Features
 
-- One-step anonymous sharing (the front page): paste HTML, upload an `.html`
-  file, or import a URL, and get a safe, sandboxed, tamper-evident link
+- One-step anonymous sharing (the front page): paste a link (a Claude
+  artifact or any HTML page) or drop an `.html` file, and get a safe,
+  sandboxed, tamper-evident link
   instantly — no account required, in the spirit of an online PDF tool. Sign
   in only when you want to edit, comment, or control access. URL imports are
   fetched server-side behind SSRF guards (http/https only, private/loopback/
@@ -72,12 +73,12 @@ the underlying protocol is in [PROTOCOL.md](./PROTOCOL.md).
   `MSIP_Label_<guid>_*` custom properties in DOCX's `docProps/custom.xml`,
   the same key/value pairs in the PDF's `Keywords` field plus a stamped
   watermark/banner — so Microsoft DLP and endpoint tooling recognize the
-  classification outside SafeDeck too (classification/marking only; RMS/AIP
+  classification outside ShareLock too (classification/marking only; RMS/AIP
   encryption-backed labels are out of scope and would need Microsoft's MIP
   SDK)
 - Encryption at rest: version HTML is stored AES-256-GCM encrypted
   (`lib/versions.js`, the single read/write path), keyed from
-  `SAFEDECK_DATA_KEY` or an HKDF-derived key. The SHA-256 fingerprint is
+  `SHARELOCK_DATA_KEY` or an HKDF-derived key. The SHA-256 fingerprint is
   computed over the plaintext, so Section 1's decrypt → re-hash → compare
   integrity protocol is unchanged; a failed decryption is itself an
   integrity violation. Legacy plaintext rows remain readable
@@ -117,7 +118,7 @@ Then open [http://localhost:3000](http://localhost:3000).
 1. Register an organization (or join one with its join code) — or sign in
    via the simulated Microsoft button, which stands in for real Outlook SSO
    when no Microsoft credentials are configured (`/dev/outlook`).
-2. Create a new artifact and paste in some HTML.
+2. Create a safe link from the front page (paste a link or drop an .html file).
 3. Share the artifact — create a share link (recipient-bound or signed).
 4. Open `/outbox` to see the share email (and, for recipient-bound links,
    the magic-link email) that would have been sent.
@@ -128,19 +129,19 @@ Then open [http://localhost:3000](http://localhost:3000).
 
 | variable | required | purpose |
 |---|---|---|
-| `SAFEDECK_SECRET` | no | HMAC signing key for share-link grant cookies and magic-link tokens. If unset in development, one is auto-generated and persisted to `data/` so it survives restarts. Must be set explicitly in production. |
-| `SAFEDECK_DB_PATH` | no | Path to the SQLite database file. Defaults to a local path under `data/` if unset. |
+| `SHARELOCK_SECRET` | no | HMAC signing key for share-link grant cookies and magic-link tokens. If unset in development, one is auto-generated and persisted to `data/` so it survives restarts. Must be set explicitly in production. |
+| `SHARELOCK_DB_PATH` | no | Path to the SQLite database file. Defaults to a local path under `data/` if unset. |
 | `MS_CLIENT_ID` | no | Microsoft Entra ID application (client) ID for Outlook SSO. If unset, the `/dev/outlook` development simulator stands in for real Microsoft sign-in, and the real callback endpoint is unavailable. |
 | `MS_CLIENT_SECRET` | no | Microsoft Entra ID client secret, used for the confidential-client authorization-code exchange. |
 | `MS_TENANT` | no | Microsoft Entra ID tenant to authenticate against. Defaults to `"common"`. |
-| `SAFEDECK_ANTHROPIC_KEY` | no | Anthropic API key used to fund the AI editing assistant from the org's platform credits (`orgs.ai_credits`). Only needed if you want AI edits to work without every user supplying their own key. |
-| `SAFEDECK_DATA_KEY` | no | 32-byte, base64url-encoded key used to AES-256-GCM encrypt version HTML at rest. If unset, an encryption key is HKDF-derived from `SAFEDECK_SECRET` instead. |
-| `SAFEDECK_CHROMIUM_PATH` | no | Path to a Chromium binary used for headless PDF export. Auto-detected in development if unset; set explicitly in production if no compatible Chromium is found automatically. |
+| `SHARELOCK_ANTHROPIC_KEY` | no | Anthropic API key used to fund the AI editing assistant from the org's platform credits (`orgs.ai_credits`). Only needed if you want AI edits to work without every user supplying their own key. |
+| `SHARELOCK_DATA_KEY` | no | 32-byte, base64url-encoded key used to AES-256-GCM encrypt version HTML at rest. If unset, an encryption key is HKDF-derived from `SHARELOCK_SECRET` instead. |
+| `SHARELOCK_CHROMIUM_PATH` | no | Path to a Chromium binary used for headless PDF export. Auto-detected in development if unset; set explicitly in production if no compatible Chromium is found automatically. |
 
 The AI editing assistant always needs an Anthropic API key from one of two
 places: a user's own key, entered in the Assistant panel and stored only in
 that user's browser, or the org's platform credits, which require
-`SAFEDECK_ANTHROPIC_KEY` to be set on the server.
+`SHARELOCK_ANTHROPIC_KEY` to be set on the server.
 
 ## Tech stack
 
@@ -158,7 +159,7 @@ sensitivity-label/document-egress mechanisms summarized above.
 ```
 apps/safedeck/
 ├── app/                  # Next.js App Router pages
-│   ├── page.js + quick-share.js  # the simple front page: paste/upload/import → safe link
+│   ├── page.js + quick-share.js  # the front page: link or .html file → safe link
 │   ├── ...                    # dashboard, artifact viewer, /outbox, auth pages
 │   ├── artifacts/[id]/edit/    # visual "studio" editor (page rail, canvas, Design/Assistant dock)
 │   ├── artifacts/[id]/analytics/  # owner-only per-artifact analytics dashboard

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Comments } from "@/app/components/comments.js";
 import { LabelBadge, LabelPicker } from "@/app/components/labels.js";
 import { WindowBar } from "@/app/components/window-bar.js";
+import { ExportButtons } from "@/app/components/export-buttons.js";
 
 function WatermarkOverlay({ text }) {
   return (
@@ -101,16 +102,7 @@ export default function ArtifactPage({ params }) {
             </div>
           </div>
           <div className="row">
-            {current && (
-              <>
-                <a className="btn btn-secondary btn-sm" href={`/api/export/pdf?artifact=${id}&version=${current.id}`}>
-                  ↓ PDF
-                </a>
-                <a className="btn btn-secondary btn-sm" href={`/api/export/docx?artifact=${id}&version=${current.id}`}>
-                  ↓ DOC
-                </a>
-              </>
-            )}
+            {current && <ExportButtons artifactId={id} versionId={current.id} />}
             {access.isOwner && (
               <Link href={`/artifacts/${id}/analytics`} className="btn btn-secondary btn-sm">
                 Analytics
@@ -182,17 +174,7 @@ export default function ArtifactPage({ params }) {
                 <button
                   key={v.id}
                   onClick={() => setSelectedVersion(v.id)}
-                  className="card"
-                  style={{
-                    padding: "10px 12px",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    boxShadow: "none", borderRadius: 0,
-                    border: v.id === current?.id ? "2px solid var(--ink)" : "2px solid var(--hairline)",
-                    background: v.id === current?.id ? "var(--volt-soft)" : "#fff",
-                    fontFamily: "inherit",
-                    fontSize: "0.85rem",
-                  }}
+                  className={`version-item ${v.id === current?.id ? "active" : ""}`}
                 >
                   <strong>v{v.version_number}</strong>
                   {v.id === artifact.current_version_id && (
@@ -421,7 +403,7 @@ function People({ id }) {
         <button className="btn btn-primary btn-sm">Grant</button>
       </form>
       <p className="muted small" style={{ margin: 0 }}>
-        Grants access to registered SafeDeck users (any org). For external
+        Grants access to registered ShareLock users (any org). For external
         people without accounts, use Share links.
       </p>
       {perms.length > 0 && (

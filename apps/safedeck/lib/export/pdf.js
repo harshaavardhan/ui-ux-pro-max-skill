@@ -23,7 +23,7 @@ const CHROMIUM_CANDIDATES = [
 ];
 
 function resolveExecutablePath() {
-  if (process.env.SAFEDECK_CHROMIUM_PATH) return process.env.SAFEDECK_CHROMIUM_PATH;
+  if (process.env.SHARELOCK_CHROMIUM_PATH) return process.env.SHARELOCK_CHROMIUM_PATH;
   for (const p of CHROMIUM_CANDIDATES) {
     try {
       if (fs.existsSync(p)) return p;
@@ -191,9 +191,9 @@ export async function htmlToPdf(
 
   // ---- Post-process metadata with pdf-lib ----
   const doc = await PDFDocument.load(pdfBytes);
-  doc.setTitle(title || "SafeDeck Export");
-  doc.setCreator("SafeDeck");
-  doc.setProducer("SafeDeck Export");
+  doc.setTitle(title || "ShareLock Export");
+  doc.setCreator("ShareLock");
+  doc.setProducer("ShareLock Export");
   if (label) {
     doc.setSubject(`Sensitivity: ${label.name}`);
     // Embed each MSIP property as a "key=value" keyword so DLP keyword

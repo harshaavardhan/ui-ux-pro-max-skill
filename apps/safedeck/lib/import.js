@@ -50,7 +50,7 @@ export async function importHtmlFromUrl(rawUrl) {
     res = await fetch(url.toString(), {
       signal: ctrl.signal,
       redirect: "error", // don't follow redirects (they can bypass the IP check)
-      headers: { "User-Agent": "SafeDeck-Import/1.0" },
+      headers: { "User-Agent": "ShareLock-Import/1.0" },
     });
   } catch {
     throw badRequest("could not fetch that URL (network error, redirect, or timeout)");

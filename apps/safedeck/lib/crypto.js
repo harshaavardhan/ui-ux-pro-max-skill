@@ -14,7 +14,7 @@ export function randomId(prefix) {
   return `${prefix}_${crypto.randomBytes(9).toString("base64url")}`;
 }
 
-let secret = process.env.SAFEDECK_SECRET;
+let secret = process.env.SHARELOCK_SECRET;
 if (!secret) {
   // Dev fallback: persist a generated secret so grants survive restarts.
   const secretPath = path.join(process.cwd(), "data", ".dev-secret");
@@ -60,17 +60,17 @@ export function verifyGrant(token) {
 // ---- At-rest content encryption (AES-256-GCM) ----
 // Version HTML is stored encrypted; the SHA-256 integrity fingerprint is
 // always computed over the *plaintext*, so tamper-evidence is unchanged.
-// Key: SAFEDECK_DATA_KEY (base64url, 32 bytes) or derived from the server
+// Key: SHARELOCK_DATA_KEY (base64url, 32 bytes) or derived from the server
 // secret via HKDF so dev environments need no extra config.
 let dataKey = null;
 function getDataKey() {
   if (dataKey) return dataKey;
-  const explicit = process.env.SAFEDECK_DATA_KEY;
+  const explicit = process.env.SHARELOCK_DATA_KEY;
   if (explicit) {
     dataKey = Buffer.from(explicit, "base64url");
-    if (dataKey.length !== 32) throw new Error("SAFEDECK_DATA_KEY must be 32 bytes (base64url)");
+    if (dataKey.length !== 32) throw new Error("SHARELOCK_DATA_KEY must be 32 bytes (base64url)");
   } else {
-    dataKey = crypto.hkdfSync("sha256", Buffer.from(secret), Buffer.alloc(0), "safedeck-data-v1", 32);
+    dataKey = crypto.hkdfSync("sha256", Buffer.from(secret), Buffer.alloc(0), "sharelock-data-v1", 32);
     dataKey = Buffer.from(dataKey);
   }
   return dataKey;

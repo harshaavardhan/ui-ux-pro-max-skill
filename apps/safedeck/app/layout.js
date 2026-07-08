@@ -4,7 +4,7 @@ import { currentUser } from "@/lib/auth.js";
 import { LogoutButton } from "./nav-actions.js";
 
 export const metadata = {
-  title: "SafeDeck — Safe HTML artifact sharing",
+  title: "ShareLock — Send HTML safely",
   description:
     "Share interactive HTML decks between companies with permissions, integrity verification, and zero data leakage.",
 };
@@ -19,7 +19,7 @@ export default function RootLayout({ children }) {
         <nav className="topnav">
           <div className="topnav-inner">
             <Link href={user ? "/dashboard" : "/"} className="brand">
-              <span className="brand-mark">S</span> SafeDeck
+              <span className="brand-mark">S</span> ShareLock
             </Link>
             {user && (
               <>

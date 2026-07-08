@@ -1,16 +1,16 @@
-# The SafeDeck Artifact Protocol (SAP)
+# The ShareLock Artifact Protocol (SLP)
 
-Status: living specification for the SafeDeck platform
+Status: living specification for the ShareLock platform
 Scope: how artifacts are stored, verified, rendered, shared, and audited
 
-SafeDeck exists to replace the practice of emailing PowerPoint decks between
+ShareLock exists to replace the practice of emailing PowerPoint decks between
 companies with something that is interactive (HTML artifacts) and provably
 safe: the recipient can trust that what they see is exactly what was sent,
 and the sender can trust that the artifact cannot be used against the
-recipient (or vice versa). This document specifies the protocol — SAP — that
+recipient (or vice versa). This document specifies the protocol — SLP — that
 makes both guarantees hold.
 
-SAP has eight parts:
+SLP has eight parts:
 
 1. Integrity (tamper-evidence)
 2. Safe rendering sandbox
@@ -61,8 +61,8 @@ key.
 `lib/versions.js` is the single read/write path for version content — every
 insert encrypts, every read decrypts — so there is exactly one place where
 this can go wrong, not one per call site. The encryption key comes from
-`SAFEDECK_DATA_KEY` (a 32-byte, base64url-encoded key) when set, or is
-otherwise HKDF-derived from the server secret (`SAFEDECK_SECRET`).
+`SHARELOCK_DATA_KEY` (a 32-byte, base64url-encoded key) when set, or is
+otherwise HKDF-derived from the server secret (`SHARELOCK_SECRET`).
 
 This is deliberately layered *underneath* the integrity model above, not
 instead of it: the SHA-256 fingerprint is computed over the **plaintext**
@@ -80,7 +80,7 @@ migration.
 
 ## 2. Safe rendering sandbox
 
-**Never inlined.** Artifact HTML is never embedded into the SafeDeck
+**Never inlined.** Artifact HTML is never embedded into the ShareLock
 application's own DOM. It is never treated as a fragment injected into a
 host page. Instead it is served whole by a dedicated endpoint,
 `GET /api/render/[versionId]`, and displayed to the user inside:
@@ -91,9 +91,9 @@ host page. Instead it is served whole by a dedicated endpoint,
 
 Note deliberately what is **absent**: `allow-same-origin` is never granted.
 Without it, the iframe's content executes in a browser-assigned *opaque
-origin* — distinct from SafeDeck's origin and distinct from every other
-render of every other artifact. An opaque origin cannot read SafeDeck's
-cookies, cannot touch SafeDeck's `localStorage`/`sessionStorage`, and cannot
+origin* — distinct from ShareLock's origin and distinct from every other
+render of every other artifact. An opaque origin cannot read ShareLock's
+cookies, cannot touch ShareLock's `localStorage`/`sessionStorage`, and cannot
 reach into the parent DOM. The artifact is fully isolated from the host
 application and from other artifacts.
 
@@ -147,7 +147,7 @@ owner > editor > commenter > viewer
 
 - **Internal grants** are `(artifact, user) → role` rows: an explicit,
   named permission for a user who belongs to the owning org (or another org
-  known to SafeDeck).
+  known to ShareLock).
 - **External access** — for people outside the artifact's granting model
   entirely — is available *only* through share links (Section 4). There is
   no mechanism for an external, unauthenticated party to be granted a role
@@ -168,9 +168,9 @@ endpoint over TLS, as part of a confidential-client authorization-code
 exchange (client ID + client secret). Because that exchange happens
 server-to-server over an authenticated TLS channel straight from Microsoft,
 the claims inside the `id_token` — email/`preferred_username` and name — are
-trusted as-is; SafeDeck does not separately re-verify the token's signature
+trusted as-is; ShareLock does not separately re-verify the token's signature
 locally. If the claimed email matches an existing account, the user is
-signed in immediately. If the email is new, SafeDeck cannot yet place the
+signed in immediately. If the email is new, ShareLock cannot yet place the
 user in an organization, so it issues a short-lived (15-minute),
 HMAC-signed pending-SSO cookie carrying the verified identity and redirects
 to `/register`, where the user only has to pick or create an organization —
@@ -205,7 +205,7 @@ registered. Requesting and consuming a login link are each audited as
 
 ## 4. Share links (cross-company sharing)
 
-Share links are how SafeDeck artifacts cross company boundaries. Every link
+Share links are how ShareLock artifacts cross company boundaries. Every link
 carries a role (`viewer` or `commenter`), an optional expiry, and is
 revocable at any time by the owner regardless of mode. The owner chooses
 one of two modes per link:
@@ -259,7 +259,7 @@ content-type requirement and a request timeout.
 
 - Link tokens are 32 bytes of CSPRNG output, base64url-encoded.
 - Grant cookies and magic-link tokens are `HMAC-SHA256`-signed with a
-  server secret, `SAFEDECK_SECRET`. In development, if unset, a secret is
+  server secret, `SHARELOCK_SECRET`. In development, if unset, a secret is
   auto-generated and persisted to `data/` so it survives restarts; in
   production it must be set explicitly.
 - Revocation is immediate and server-authoritative: every render or comment
@@ -284,7 +284,7 @@ per artifact. Logged events:
 - integrity check failure
 
 Owners can see the full log for their artifacts in the app. The log is
-never edited or pruned by SafeDeck — it is the ground truth for "who did
+never edited or pruned by ShareLock — it is the ground truth for "who did
 what, when" across an artifact's lifetime, including failed and rejected
 attempts (a failed magic-link verification or a caught integrity violation
 is itself logged, not just successes).
@@ -313,7 +313,7 @@ Anyone with commenter role or above can post; anyone with viewer access or
 above — including plain viewers — can read the thread. Posting requires at
 least `commenter`.
 
-**Page-wise editing.** SafeDeck recognizes a deck convention on top of plain
+**Page-wise editing.** ShareLock recognizes a deck convention on top of plain
 HTML: each top-level `<section>` element inside `<body>` is treated as one
 page. `lib/pages.js` implements this by lexically splitting a document into
 a `prefix`, an array of `pages[]`, and a `suffix`, using depth-counted
@@ -396,7 +396,7 @@ Every AI edit requires an Anthropic API key, from one of two sources: a
 user-supplied key, kept only in that user's browser (`localStorage`), sent
 directly with each edit request, and never persisted server-side; or the
 org's platform credits (`orgs.ai_credits`, default 25), which require
-`SAFEDECK_ANTHROPIC_KEY` to be configured server-side and are decremented
+`SHARELOCK_ANTHROPIC_KEY` to be configured server-side and are decremented
 by one per successful platform-credit edit. A user-supplied key always
 takes precedence and never consumes credits; if neither is available, the
 edit request is refused with `402`. Provider-side failures are mapped to
@@ -443,7 +443,7 @@ Confidential`. A label has:
 | `name` | display name |
 | `color` | swatch shown wherever the label appears |
 | `rank` | ordering (higher rank = more sensitive) |
-| `guid` | a stable identifier — a random UUID by default, but an admin may instead paste in their organization's real Microsoft tenant label GUID, which is what makes the interop metadata below line up with the org's actual Purview taxonomy rather than a SafeDeck-local one |
+| `guid` | a stable identifier — a random UUID by default, but an admin may instead paste in their organization's real Microsoft tenant label GUID, which is what makes the interop metadata below line up with the org's actual Purview taxonomy rather than a ShareLock-local one |
 | `allow_external` | whether the label permits share links at all |
 | `allow_signed` | whether the label permits "anyone with the link" (signed-mode) links, as opposed to recipient-bound only |
 | `allow_ai` | whether the AI editing assistant (Section 6) may be used on this content |
@@ -495,7 +495,7 @@ decryption failure blocks the export with `409` the same way it blocks a
 render. Every export, successful or not, is written to the audit log.
 
 - **PDF.** Rendered via a headless-Chromium print pass (the binary path is
-  configurable through `SAFEDECK_CHROMIUM_PATH`, and is auto-detected in
+  configurable through `SHARELOCK_CHROMIUM_PATH`, and is auto-detected in
   development when unset). Each top-level `<section>` — the same page unit
   Section 6 defines for page-wise editing — becomes exactly one PDF page;
   backgrounds and gradients are preserved rather than flattened to white.
@@ -510,7 +510,7 @@ render. Every export, successful or not, is written to the audit log.
   (below) are injected by post-processing the generated file as a zip.
 
 **MSIP-compatible interop metadata.** To make a label recognizable to
-Microsoft's own DLP and endpoint tooling — not just inside SafeDeck — every
+Microsoft's own DLP and endpoint tooling — not just inside ShareLock — every
 export of a labeled artifact carries the same metadata convention Purview
 itself writes into Office files:
 
@@ -518,7 +518,7 @@ itself writes into Office files:
   `_SetDate`, and `_SiteId` custom document properties, written into
   `docProps/custom.xml`. This is the exact property naming Microsoft's own
   tooling looks for, which is why a label's `guid` can be set to an org's
-  real Microsoft tenant label GUID instead of SafeDeck's random default —
+  real Microsoft tenant label GUID instead of ShareLock's random default —
   doing so makes an exported document read, to Microsoft DLP and endpoint
   agents, as if it had been labeled by Purview directly.
 - **PDF** gets the same key/value pairs written into the PDF's `Keywords`
@@ -565,6 +565,6 @@ page's promise to anonymous users: no sign-in required, encrypted at rest
 | AI-introduced network-exfiltration vector | the AI system prompt constrains output to the render sandbox's safety envelope (inline styles only, `data:`-only media, no `<script src>`/`fetch`/`XHR`); even if that constraint were bypassed, the render endpoint's real CSP (Section 2) still blocks network access at view time regardless of draft content |
 | User's own Anthropic API key exposure | a user-supplied key is stored only in that user's browser `localStorage`, sent directly with each edit request, and never persisted server-side |
 | Over-shared confidential content (a link created more broadly than policy allows) | the assigned label's `allow_external`/`allow_signed` flags are checked server-side at share-link creation; a disallowed link is refused with `403` and logged as `share_blocked_by_label` |
-| Data-at-rest theft (stolen database file or disk) | version HTML is stored AES-256-GCM encrypted (`SAFEDECK_DATA_KEY` or an HKDF-derived key); the SHA-256 fingerprint is computed over the plaintext, so tamper-evidence is unaffected by the encryption layer |
+| Data-at-rest theft (stolen database file or disk) | version HTML is stored AES-256-GCM encrypted (`SHARELOCK_DATA_KEY` or an HKDF-derived key); the SHA-256 fingerprint is computed over the plaintext, so tamper-evidence is unaffected by the encryption layer |
 | Stale anonymous data lingering indefinitely | `lib/purge.js` permanently deletes an anonymous quick-share artifact — versions, links, comments, and audit rows — once every link on it has expired or been revoked |
-| Classified exports escaping DLP/endpoint controls once outside SafeDeck | PDF/DOCX exports of labeled artifacts carry MSIP-compatible metadata (`MSIP_Label_*` custom properties in DOCX, equivalent `Keywords` entries in PDF) so Microsoft DLP and endpoint tooling recognize the classification even after the file has left SafeDeck |
+| Classified exports escaping DLP/endpoint controls once outside ShareLock | PDF/DOCX exports of labeled artifacts carry MSIP-compatible metadata (`MSIP_Label_*` custom properties in DOCX, equivalent `Keywords` entries in PDF) so Microsoft DLP and endpoint tooling recognize the classification even after the file has left ShareLock |

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { DEFAULT_LABEL_COLOR } from "@/lib/constants.js";
 import Link from "next/link";
 
 async function api(path, opts) {
@@ -19,7 +20,7 @@ async function api(path, opts) {
 
 const emptyForm = {
   name: "",
-  color: "#0e0e10",
+  color: DEFAULT_LABEL_COLOR,
   rank: 0,
   guid: "",
   watermark: false,

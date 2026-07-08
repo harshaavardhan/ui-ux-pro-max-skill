@@ -79,7 +79,7 @@ export const POST = handler(async (req, { params }) => {
   for (const to of emails) {
     sendMail({
       to,
-      subject: `${user.name} shared “${artifact.title}” with you on SafeDeck`,
+      subject: `${user.name} shared “${artifact.title}” with you on ShareLock`,
       body: `${user.name} (${user.email}, ${user.org_name}) shared the interactive deck “${artifact.title}” with you.\n\n${message ? message + "\n\n" : ""}Open it here:\n${shareUrl}\n\n${mode === "recipient" ? "You will be asked to verify this email address before viewing — the link only works for invited recipients." : "Anyone with this link can view it until it expires or is revoked."}\n\nContent integrity is verified with SHA-256 on every view.`,
       link: shareUrl,
     });

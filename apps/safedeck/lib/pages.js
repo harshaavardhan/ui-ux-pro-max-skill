@@ -1,6 +1,6 @@
 // Page-wise editing support.
 //
-// SafeDeck's deck convention: each top-level <section> inside <body> is one
+// ShareLock's deck convention: each top-level <section> inside <body> is one
 // page. splitPages() carves a full HTML document into an immutable-friendly
 // structure { prefix, pages[], suffix } where
 //   prefix + pages.join('') + suffix === original document, byte for byte.

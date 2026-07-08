@@ -225,7 +225,7 @@ export function AiAssistant({ artifactId, pageIndex, getPageHtml, onResult, cred
           <p className="muted" style={{ fontSize: "0.72rem", margin: "0 0 6px" }}>
             Paste your Anthropic API key to use your own credits. It's stored only
             in this browser (localStorage) and sent directly with each edit
-            request — SafeDeck never persists it.
+            request — ShareLock never persists it.
           </p>
           <input
             type="password"

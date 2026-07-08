@@ -24,7 +24,7 @@ export function msipProperties(label, { siteId = "" } = {}) {
     [`MSIP_Label_${g}_Method`]: "Privileged",
     [`MSIP_Label_${g}_SetDate`]: new Date().toISOString(),
     [`MSIP_Label_${g}_SiteId`]: siteId,
-    SafeDeck_Sensitivity: label.name,
+    ShareLock_Sensitivity: label.name,
   };
 }
 

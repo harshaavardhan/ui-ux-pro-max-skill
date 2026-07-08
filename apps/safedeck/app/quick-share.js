@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ExportButtons } from "@/app/components/export-buttons.js";
+
+const WORDMARK = "SHARELOCK";
 
 export function QuickShare({ loggedIn }) {
-  const [mode, setMode] = useState("paste"); // paste | url
-  const [html, setHtml] = useState("");
   const [url, setUrl] = useState("");
-  const [title, setTitle] = useState("");
+  const [fileHtml, setFileHtml] = useState("");
+  const [fileName, setFileName] = useState("");
   const [expiryDays, setExpiryDays] = useState(7);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -21,12 +23,13 @@ export function QuickShare({ loggedIn }) {
     setBusy(true);
     setError("");
     try {
+      const body = fileHtml
+        ? { html: fileHtml, title: fileName.replace(/\.html?$/i, ""), expiryDays }
+        : { url, expiryDays };
       const res = await fetch("/api/quick", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          mode === "url" ? { url, title, expiryDays } : { html, title, expiryDays }
-        ),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) setError(data.error || "something went wrong");
@@ -40,9 +43,9 @@ export function QuickShare({ loggedIn }) {
 
   function reset() {
     setResult(null);
-    setHtml("");
     setUrl("");
-    setTitle("");
+    setFileHtml("");
+    setFileName("");
     setError("");
     setCopied(false);
     setShowDownloads(false);
@@ -57,14 +60,11 @@ export function QuickShare({ loggedIn }) {
     const reader = new FileReader();
     reader.onload = () => {
       setError("");
-      setMode("paste");
-      setHtml(String(reader.result || ""));
-      if (!title) setTitle(file.name.replace(/\.html?$/i, ""));
+      setFileHtml(String(reader.result || ""));
+      setFileName(file.name);
+      setUrl("");
     };
     reader.readAsText(file);
-  }
-  function onFile(e) {
-    readFile(e.target.files?.[0]);
   }
   function onDrop(e) {
     e.preventDefault();
@@ -81,89 +81,75 @@ export function QuickShare({ loggedIn }) {
   }
 
   return (
-    <main className="page">
-      <div className="quick-wrap">
-        <h1 className="quick-title">
-          Share an HTML page <span className="grad">safely.</span>
+    <main
+      className="hero"
+      onDragOver={(e) => { e.preventDefault(); if (!dragging) setDragging(true); }}
+      onDragLeave={(e) => { if (e.currentTarget === e.target) setDragging(false); }}
+      onDrop={onDrop}
+    >
+      {dragging && <div className="hero-drop-hint">Drop your .html file</div>}
+
+      <section className="hero-stage">
+        <div className="hero-block" aria-hidden="true" />
+        <h1 className="hero-word" aria-label={WORDMARK}>
+          {WORDMARK.split("").map((ch, i) => (
+            <span key={i} aria-hidden="true">{ch}</span>
+          ))}
         </h1>
-        <p className="quick-sub">
-          Paste your HTML or a link. Get a safe, sandboxed link you can send to
-          anyone — no account needed.
+        <p className="hero-tag">
+          Paste a Claude artifact link — or drop an HTML file — and send one
+          safe, sealed, self-destructing link.
         </p>
 
         {!result ? (
-          <form
-            onSubmit={create}
-            className={`quick-card ${dragging ? "dragging" : ""}`}
-            onDragOver={(e) => { e.preventDefault(); if (!dragging) setDragging(true); }}
-            onDragLeave={(e) => { if (e.currentTarget === e.target) setDragging(false); }}
-            onDrop={onDrop}
-          >
-            {dragging && (
-              <div className="quick-drop-hint">Drop your .html file to load it</div>
+          <>
+            {error && (
+              <div className="alert alert-error hero-alert">{error}</div>
             )}
-            <div className="quick-modes">
-              <button type="button" className={`quick-mode ${mode === "paste" ? "active" : ""}`} onClick={() => setMode("paste")}>
-                Paste HTML
+            <form className="hero-bar" onSubmit={create}>
+              {fileName ? (
+                <div className="hero-file mono">
+                  {fileName}
+                  <button type="button" onClick={() => { setFileHtml(""); setFileName(""); }} title="Remove file">
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <input
+                  className="hero-input"
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="Paste a link — Claude artifact or any HTML page"
+                />
+              )}
+              <button className="hero-go" disabled={busy || (!url.trim() && !fileHtml)}>
+                {busy ? "Sealing…" : "Create safe link"}
               </button>
-              <button type="button" className={`quick-mode ${mode === "url" ? "active" : ""}`} onClick={() => setMode("url")}>
-                Import from URL
-              </button>
-              <label className="quick-mode as-upload">
-                Upload .html
-                <input type="file" accept=".html,.htm,text/html" onChange={onFile} hidden />
+            </form>
+
+            <div className="hero-meta">
+              <label className="hero-upload">
+                or <u>choose an .html file</u> — dropping it anywhere works too
+                <input
+                  type="file"
+                  accept=".html,.htm,text/html"
+                  onChange={(e) => readFile(e.target.files?.[0])}
+                  hidden
+                />
               </label>
-            </div>
-
-            {error && <div className="alert alert-error" style={{ marginBottom: 12 }}>{error}</div>}
-
-            {mode === "paste" ? (
-              <textarea
-                className="quick-textarea"
-                value={html}
-                onChange={(e) => setHtml(e.target.value)}
-                placeholder={"<!doctype html>\n<html>\n  …paste your page here…\n</html>"}
-                spellCheck={false}
-              />
-            ) : (
-              <input
-                className="quick-url"
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://example.com/report.html"
-              />
-            )}
-
-            <div className="quick-actions">
-              <input
-                className="quick-name"
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Title (optional)"
-              />
+              <span className="hero-meta-sep" aria-hidden="true">·</span>
               <select
                 value={expiryDays}
                 onChange={(e) => setExpiryDays(Number(e.target.value))}
-                style={{ width: "auto", minWidth: 130 }}
                 title="The link — and the data — are deleted after this"
               >
                 <option value={1}>Expires in 1 day</option>
                 <option value={7}>Expires in 7 days</option>
                 <option value={30}>Expires in 30 days</option>
               </select>
-              <button className="btn btn-primary" disabled={busy || (mode === "paste" ? !html.trim() : !url.trim())}>
-                {busy ? "Creating…" : "Create safe link"}
-              </button>
             </div>
-
-            <p className="quick-note muted">
-              No sign-in needed · encrypted at rest · your data is not kept —
-              it's automatically deleted when the link expires · tamper-evident
-              (SHA-256) · sandboxed, no data leakage.
-            </p>
-          </form>
+          </>
         ) : (
           <div className="quick-card quick-success">
             <div className="quick-check">✓</div>
@@ -189,14 +175,7 @@ export function QuickShare({ loggedIn }) {
             </button>
             {showDownloads && (
               <div className="row" style={{ justifyContent: "center", gap: 10, marginTop: 10 }}>
-                <a className="btn btn-secondary btn-sm"
-                   href={`/api/export/pdf?artifact=${result.artifactId}&link=${result.token}`}>
-                  ↓ PDF
-                </a>
-                <a className="btn btn-secondary btn-sm"
-                   href={`/api/export/docx?artifact=${result.artifactId}&link=${result.token}`}>
-                  ↓ DOC
-                </a>
+                <ExportButtons artifactId={result.artifactId} linkToken={result.token} />
               </div>
             )}
 
@@ -219,21 +198,36 @@ export function QuickShare({ loggedIn }) {
             <button className="quick-another" onClick={reset}>← Share another page</button>
           </div>
         )}
+      </section>
 
-        {!result && (
-          <p className="quick-signin muted small">
-            {loggedIn ? (
-              <Link href="/dashboard">Go to your workspace →</Link>
-            ) : (
-              <>
-                Need editing, comments, and access control?{" "}
-                <Link href="/register">Create a free workspace</Link> or{" "}
-                <Link href="/login">sign in</Link>.
-              </>
-            )}
-          </p>
-        )}
-      </div>
+      <section className="hero-specs">
+        <div>
+          <strong>AES-256</strong>
+          <span>encrypted at rest — never kept in the clear</span>
+        </div>
+        <div>
+          <strong>SHA-256</strong>
+          <span>fingerprint re-verified on every open</span>
+        </div>
+        <div>
+          <strong>{expiryDays} {expiryDays === 1 ? "day" : "days"}</strong>
+          <span>then the data is permanently deleted</span>
+        </div>
+      </section>
+
+      {!result && (
+        <p className="quick-signin muted small">
+          {loggedIn ? (
+            <Link href="/dashboard">Go to your workspace →</Link>
+          ) : (
+            <>
+              No account needed. Want editing, comments, and access control?{" "}
+              <Link href="/register">Create a free workspace</Link> or{" "}
+              <Link href="/login">sign in</Link>.
+            </>
+          )}
+        </p>
+      )}
     </main>
   );
 }

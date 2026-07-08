@@ -5,7 +5,7 @@ import { getVersionHtml } from "@/lib/versions.js";
 import { audit } from "@/lib/audit.js";
 import { handler } from "@/lib/api.js";
 
-// SafeDeck Artifact Protocol — render endpoint.
+// ShareLock Artifact Protocol — render endpoint.
 //
 // 1. Access: requires a member session with a role on the artifact, or a
 //    valid share link (?link=<token>); recipient-bound links additionally
@@ -90,8 +90,8 @@ export const GET = handler(async (req, { params }) => {
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "no-referrer",
       "Cache-Control": "no-store",
-      "X-SafeDeck-SHA256": version.sha256,
-      "X-SafeDeck-Version": String(version.version_number),
+      "X-ShareLock-SHA256": version.sha256,
+      "X-ShareLock-Version": String(version.version_number),
     },
   });
 });

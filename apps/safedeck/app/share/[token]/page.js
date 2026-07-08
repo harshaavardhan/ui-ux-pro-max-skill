@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Comments } from "@/app/components/comments.js";
+import { LabelBadge } from "@/app/components/labels.js";
+import { ExportButtons } from "@/app/components/export-buttons.js";
 
 function WatermarkOverlay({ text }) {
   return (
@@ -139,18 +141,7 @@ export default function SharePage({ params, searchParams }) {
                   ? `✓ verified as ${state.email}`
                   : "shared via link"}
               </span>
-              {state.label && (
-                <span
-                  className="badge"
-                  style={{
-                    background: state.label.color + "1a",
-                    color: state.label.color,
-                    borderColor: state.label.color + "55",
-                  }}
-                >
-                  ● {state.label.name}
-                </span>
-              )}
+              <LabelBadge label={state.label} />
               <span className="badge badge-muted">access: {state.role}</span>
               {current && (
                 <span className="badge badge-ok" title={`Full SHA-256: ${current.sha256}`}>
@@ -166,14 +157,7 @@ export default function SharePage({ params, searchParams }) {
           </div>
           {detail && current && (
             <div className="row">
-              <a className="btn btn-secondary btn-sm"
-                 href={`/api/export/pdf?artifact=${detail.artifact.id}&version=${current.id}&link=${encodeURIComponent(token)}`}>
-                ↓ PDF
-              </a>
-              <a className="btn btn-secondary btn-sm"
-                 href={`/api/export/docx?artifact=${detail.artifact.id}&version=${current.id}&link=${encodeURIComponent(token)}`}>
-                ↓ DOC
-              </a>
+              <ExportButtons artifactId={detail.artifact.id} versionId={current.id} linkToken={token} />
             </div>
           )}
         </div>
@@ -222,17 +206,7 @@ export default function SharePage({ params, searchParams }) {
                 <button
                   key={v.id}
                   onClick={() => setSelectedVersion(v.id)}
-                  className="card"
-                  style={{
-                    padding: "10px 12px",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    boxShadow: "none", borderRadius: 0,
-                    border: v.id === current?.id ? "2px solid var(--ink)" : "2px solid var(--hairline)",
-                    background: v.id === current?.id ? "var(--volt-soft)" : "#fff",
-                    fontFamily: "inherit",
-                    fontSize: "0.85rem",
-                  }}
+                  className={`version-item ${v.id === current?.id ? "active" : ""}`}
                 >
                   <strong>v{v.version_number}</strong>
                   <div className="muted small">{v.author_name} · {v.created_at}</div>

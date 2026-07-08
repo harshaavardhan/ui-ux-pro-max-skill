@@ -25,8 +25,8 @@ export const POST = handler(async (req) => {
     const verifyUrl = `${origin}/api/auth/magic/verify?token=${token}`;
     sendMail({
       to: cleanEmail,
-      subject: "Your SafeDeck sign-in link",
-      body: `Click within ${MAGIC_MINUTES} minutes to sign in to SafeDeck. The link works once.\n\n${verifyUrl}\n\nIf you didn't request this, ignore this email.`,
+      subject: "Your ShareLock sign-in link",
+      body: `Click within ${MAGIC_MINUTES} minutes to sign in to ShareLock. The link works once.\n\n${verifyUrl}\n\nIf you didn't request this, ignore this email.`,
       link: verifyUrl,
     });
     audit(null, cleanEmail, "login_link_requested", "");

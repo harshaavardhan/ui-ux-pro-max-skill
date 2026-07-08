@@ -121,7 +121,7 @@ export async function htmlToDocxBuffer(html, { title, label } = {}) {
     : null;
 
   const options = {
-    title: title || "SafeDeck Export",
+    title: title || "ShareLock Export",
     orientation: "landscape",
     margins: { top: 720, right: 720, bottom: 720, left: 720 },
     table: { row: { cantSplit: true } },

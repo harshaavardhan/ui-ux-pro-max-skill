@@ -1,4 +1,5 @@
 import db from "@/lib/db.js";
+import { DEFAULT_LABEL_COLOR } from "@/lib/constants.js";
 import { requireUser } from "@/lib/auth.js";
 import { seedDefaultLabels } from "@/lib/labels.js";
 import { randomId, randomUuid } from "@/lib/crypto.js";
@@ -11,7 +12,7 @@ const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
 function normalizeFields(body) {
   const name = String(body.name || "").trim();
-  const color = COLOR_RE.test(String(body.color || "")) ? body.color : "#0e0e10";
+  const color = COLOR_RE.test(String(body.color || "")) ? body.color : DEFAULT_LABEL_COLOR;
   const rank = Number.isFinite(Number(body.rank)) ? Number(body.rank) : 0;
   const watermark = body.watermark ? 1 : 0;
   const allowExternal = body.allowExternal ? 1 : 0;

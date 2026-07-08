@@ -1,8 +1,13 @@
-# SafeDeck Design Language — "GRAPHITE / VOLT"
+# ShareLock Design Language — "GRAPHITE / VOLT"
 
 One sentence: **Uber's stark monochrome confidence × Tesla's technical
 precision × Cybertruck's chamfered geometry — annotated with cartoonish
 scribbles, like an engineer's marker on a blueprint.**
+
+**The name.** ShareLock = share + lock. It says the whole product in one
+word, it's security-forward for enterprise trust, and the pun carries the
+brand's cartoonish streak. Wordmark: SHARELOCK, always uppercase, always
+hand-jittered (see Hero below). The brand mark stays the volt "S" chip.
 
 This document is the contract. Every screen, component, and future feature
 follows it. If a change can't be expressed in these tokens, the change is
@@ -74,6 +79,13 @@ once, never animated.
 
 ## 6. Components (canonical looks)
 
+- **Hero (front page)**: the Cybertruck composition. One flat volt color
+  block; the SHARELOCK wordmark overhangs it in heavy system sans with
+  per-letter marker jitter (rotate/offset via nth-child — the cartoonish
+  hand, kept sharp); one action bar (link input + CREATE SAFE LINK) laid
+  across the block's bottom edge; a three-column mono spec strip
+  (AES-256 / SHA-256 / expiry) where a car page would put range and 0-60.
+  No mode tabs, no textarea — paste a link or drop a file, nothing else.
 - **Button primary**: ink fill, white text, uppercase 700 tracked, chamfered;
   hover = volt fill + ink text + snap. **Secondary**: paper fill, 2px ink
   border. **Danger**: white fill, red border/text.

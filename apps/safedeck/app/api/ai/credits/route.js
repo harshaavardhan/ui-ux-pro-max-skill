@@ -9,6 +9,6 @@ export const GET = handler(async () => {
   const org = db.prepare("SELECT ai_credits FROM orgs WHERE id = ?").get(user.org_id);
   return json({
     credits: org?.ai_credits ?? 0,
-    platformKeyConfigured: Boolean(process.env.SAFEDECK_ANTHROPIC_KEY),
+    platformKeyConfigured: Boolean(process.env.SHARELOCK_ANTHROPIC_KEY),
   });
 });

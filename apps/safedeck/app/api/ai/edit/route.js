@@ -8,7 +8,7 @@ import { json, fail, handler } from "@/lib/api.js";
 
 const MAX_PAGE_BYTES = 300 * 1024;
 
-const SYSTEM = `You are SafeDeck's page editor. You receive the HTML source of one page (a fragment of a larger deck) and an instruction describing how to change it.
+const SYSTEM = `You are ShareLock's page editor. You receive the HTML source of one page (a fragment of a larger deck) and an instruction describing how to change it.
 
 Rules:
 - Return the FULL modified page HTML, preserving the outer element (e.g. the <section> wrapper) and everything the instruction doesn't ask you to change.
@@ -39,7 +39,7 @@ export const POST = handler(async (req) => {
   if (!hasRole(userRoleForArtifact(user, artifact), "editor"))
     return fail("editor access required", 403);
   // Label policy: some sensitivity labels keep content from leaving
-  // SafeDeck, which rules out sending it to the AI provider.
+  // ShareLock, which rules out sending it to the AI provider.
   const label = getArtifactLabel(artifact);
   const aiPolicyError = checkAiAllowed(label);
   if (aiPolicyError) {
@@ -57,7 +57,7 @@ export const POST = handler(async (req) => {
   let key = String(apiKey || "").trim();
   let usingCredits = false;
   if (!key) {
-    key = process.env.SAFEDECK_ANTHROPIC_KEY || "";
+    key = process.env.SHARELOCK_ANTHROPIC_KEY || "";
     usingCredits = Boolean(key);
     if (!key)
       return fail(

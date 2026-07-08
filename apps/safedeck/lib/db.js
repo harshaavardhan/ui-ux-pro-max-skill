@@ -3,10 +3,10 @@ import path from "path";
 import fs from "fs";
 
 const DB_PATH =
-  process.env.SAFEDECK_DB_PATH ||
-  path.join(process.cwd(), "data", "safedeck.db");
+  process.env.SHARELOCK_DB_PATH ||
+  path.join(process.cwd(), "data", "sharelock.db");
 
-let db = globalThis.__safedeck_db;
+let db = globalThis.__sharelock_db;
 
 if (!db) {
   fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
@@ -14,7 +14,7 @@ if (!db) {
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   migrate(db);
-  globalThis.__safedeck_db = db;
+  globalThis.__sharelock_db = db;
 }
 
 function migrate(db) {

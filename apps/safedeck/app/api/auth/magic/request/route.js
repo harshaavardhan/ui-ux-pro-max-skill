@@ -33,7 +33,7 @@ export const POST = handler(async (req) => {
     const verifyUrl = `${origin}/api/auth/magic/verify?token=${token}`;
     sendMail({
       to: cleanEmail,
-      subject: `Verify your access to “${artifact?.title || "an artifact"}” on SafeDeck`,
+      subject: `Verify your access to “${artifact?.title || "an artifact"}” on ShareLock`,
       body: `Someone shared “${artifact?.title}” with ${cleanEmail}. Click the link below within ${MAGIC_MINUTES} minutes to verify this address and open it. The link works once.\n\n${verifyUrl}`,
       link: verifyUrl,
     });
