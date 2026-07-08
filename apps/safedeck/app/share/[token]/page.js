@@ -227,9 +227,9 @@ export default function SharePage({ params, searchParams }) {
                     padding: "10px 12px",
                     textAlign: "left",
                     cursor: "pointer",
-                    boxShadow: "none",
-                    borderColor: v.id === current?.id ? "var(--primary)" : "var(--border)",
-                    background: v.id === current?.id ? "#eef2ff" : "#fff",
+                    boxShadow: "none", borderRadius: 0,
+                    border: v.id === current?.id ? "2px solid var(--ink)" : "2px solid var(--hairline)",
+                    background: v.id === current?.id ? "var(--volt-soft)" : "#fff",
                     fontFamily: "inherit",
                     fontSize: "0.85rem",
                   }}

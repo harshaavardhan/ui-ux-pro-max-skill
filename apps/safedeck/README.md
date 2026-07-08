@@ -95,11 +95,12 @@ the underlying protocol is in [PROTOCOL.md](./PROTOCOL.md).
   built entirely from existing server-side audit logs, with no tracking
   code added to artifacts
 - Dev-mode email outbox at `/outbox` — no SMTP required to try the full flow
-- Refreshed "Aurora" visual design (mesh-gradient backdrop, glass cards,
-  Poppins/Open Sans), with the new visual editor styled as a "studio" layer
-  on top — frosted-glass panels, a mesh-gradient backdrop, and soft depth
-  shadows drawing on the liquid-glass / Spatial-UI (VisionOS) and Liquid
-  Glass aesthetics
+- "GRAPHITE / VOLT" design system (see [DESIGN.md](DESIGN.md)): ink-on-paper
+  palette with a single volt-yellow accent, zero border-radius with chamfered
+  ("cybertruck") corners, hard offset shadows, mono type for all data, and a
+  hand-drawn scribble layer for warmth — one scribble per view. No blur, no
+  gradients, no webfonts, no animated backdrops: every surface is flat and
+  paints fast
 
 ## Quickstart
 

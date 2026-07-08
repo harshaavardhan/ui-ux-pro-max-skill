@@ -19,7 +19,7 @@ async function api(path, opts) {
 
 const emptyForm = {
   name: "",
-  color: "#6366f1",
+  color: "#0e0e10",
   rank: 0,
   guid: "",
   watermark: false,

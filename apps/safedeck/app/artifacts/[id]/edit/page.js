@@ -355,7 +355,7 @@ export default function EditPage({ params }) {
             </div>
           ) : (
             <>
-              <div className="canvas-hint muted small">
+              <div className="canvas-hint scribble-note">
                 Click to select · double-click text to edit · ⌘Z to undo · ⌘S to save
               </div>
               <div className="canvas-frame-wrap">

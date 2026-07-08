@@ -35,8 +35,8 @@ export default function Dashboard() {
               <span className="muted">(teammates use this to register)</span>
             </p>
           </div>
-          <Link href="/artifacts/new" className="btn btn-primary">
-            + New artifact
+          <Link href="/" className="btn btn-primary">
+            + Add
           </Link>
         </div>
 

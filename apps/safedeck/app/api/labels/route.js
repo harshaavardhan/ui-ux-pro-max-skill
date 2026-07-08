@@ -11,7 +11,7 @@ const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
 function normalizeFields(body) {
   const name = String(body.name || "").trim();
-  const color = COLOR_RE.test(String(body.color || "")) ? body.color : "#6366f1";
+  const color = COLOR_RE.test(String(body.color || "")) ? body.color : "#0e0e10";
   const rank = Number.isFinite(Number(body.rank)) ? Number(body.rank) : 0;
   const watermark = body.watermark ? 1 : 0;
   const allowExternal = body.allowExternal ? 1 : 0;
