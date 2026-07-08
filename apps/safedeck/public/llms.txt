@@ -1,0 +1,48 @@
+# ShareLock
+
+> ShareLock converts HTML to PDF or Word (DOCX) online — free, private, and
+> instant. Paste a link (a Claude artifact or any HTML page) or drop an .html
+> file; download a pixel-perfect PDF or an editable .docx, and optionally send
+> a safe, sandboxed, tamper-evident link. No sign-up. Files are encrypted at
+> rest and auto-deleted when their link expires.
+
+## What it does
+
+- Convert HTML to PDF (real headless Chromium rendering; modern CSS, fonts, and
+  page breaks preserved).
+- Convert HTML to Word / DOCX (editable; headings, text, and images preserved).
+- Convert a Claude artifact or a live URL to PDF/DOCX (fetched server-side
+  behind SSRF protections).
+- Share a private, sandboxed link whose SHA-256 fingerprint is re-verified on
+  every open.
+- Optional free workspace: visual (Canva-style) editor, AI editing, comments,
+  access control, and Microsoft Purview-style sensitivity labels.
+
+## Key pages
+
+- Home / converter: /
+- FAQ and converter comparison: /faq
+- Create a free workspace: /register
+- Sign in: /login
+
+## How to convert (no account)
+
+1. Go to the home page.
+2. Paste a link or drop an .html file.
+3. Click Convert.
+4. Download the PDF or DOCX, or copy the safe link.
+
+## Privacy & security
+
+- Encrypted at rest with AES-256-GCM.
+- Auto-deleted when the link expires (1, 7, or 30 days).
+- Rendered in a sandbox with no network access and no access to your data.
+- Tamper-evident: SHA-256 fingerprint re-verified on every view.
+
+## Comparison (summary)
+
+Versus paid HTML-to-PDF APIs (PDFShift, DocRaptor, Api2Pdf), ShareLock needs no
+account or API key, is free, adds DOCX output and a shareable secure link, and
+auto-deletes your data. Versus DIY tools (Puppeteer, wkhtmltopdf), ShareLock
+needs no servers or setup. Paid APIs suit high-volume programmatic use; DIY
+suits teams wanting full control of their own infrastructure. See /faq.

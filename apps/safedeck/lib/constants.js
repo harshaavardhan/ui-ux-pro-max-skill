@@ -7,4 +7,12 @@
 // change.
 export const APP_NAME = "ShareLock";
 
+// Public site origin, used for canonical URLs, OpenGraph, sitemap, robots.
+// Set NEXT_PUBLIC_SITE_URL on your host (e.g. Vercel) to your real domain.
+export const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+// One-line value prop, keyword-first for SEO.
+export const APP_TAGLINE = "Convert HTML to PDF & DOCX — free, private, instant";
+
 export const DEFAULT_LABEL_COLOR = "#0e0e10"; // brand ink

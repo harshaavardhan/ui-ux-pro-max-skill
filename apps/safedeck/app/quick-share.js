@@ -3,12 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ExportButtons } from "@/app/components/export-buttons.js";
-import { APP_NAME } from "@/lib/constants.js";
 
-const WORDMARK = APP_NAME.toUpperCase();
-const WORDMARK_LETTERS = WORDMARK.split("").map((ch, i) => (
-  <span key={i} aria-hidden="true">{ch}</span>
-));
+// Keyword-first hero headline, rendered in the jittered "marker" treatment.
+// Each word wraps as a unit; letters jitter within it.
+const HERO_HEADLINE = "Convert HTML to PDF";
+const HERO_LETTERS = HERO_HEADLINE.toUpperCase()
+  .split(" ")
+  .map((word, wi) => (
+    <span className="hero-w" key={wi}>
+      {word.split("").map((ch, ci) => (
+        <span key={ci} aria-hidden="true">{ch}</span>
+      ))}
+    </span>
+  ));
 
 export function QuickShare({ loggedIn }) {
   const [url, setUrl] = useState("");
@@ -19,7 +26,6 @@ export function QuickShare({ loggedIn }) {
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [showDownloads, setShowDownloads] = useState(false);
   const [dragging, setDragging] = useState(false);
 
   async function create(e) {
@@ -52,7 +58,6 @@ export function QuickShare({ loggedIn }) {
     setFileName("");
     setError("");
     setCopied(false);
-    setShowDownloads(false);
   }
 
   function readFile(file) {
@@ -95,12 +100,15 @@ export function QuickShare({ loggedIn }) {
 
       <section className="hero-stage">
         <div className="hero-block" aria-hidden="true" />
-        <h1 className="hero-word" aria-label={WORDMARK}>
-          {WORDMARK_LETTERS}
+        <p className="hero-eyebrow">Free · No sign-up · Private by default</p>
+        <h1 className="hero-word" aria-label={HERO_HEADLINE}>
+          {HERO_LETTERS}
         </h1>
         <p className="hero-tag">
-          Paste a Claude artifact link — or drop an HTML file — and send one
-          safe, sealed, self-destructing link.
+          Turn any HTML page or Claude artifact into a pixel-perfect{" "}
+          <strong>PDF</strong> or an editable <strong>Word (DOCX)</strong> file
+          — instantly. Your upload is encrypted and auto-deleted; no account
+          needed.
         </p>
 
         {!result ? (
@@ -126,7 +134,7 @@ export function QuickShare({ loggedIn }) {
                 />
               )}
               <button className="btn btn-primary hero-go" disabled={busy || (!url.trim() && !fileHtml)}>
-                {busy ? "Sealing…" : "Create safe link"}
+                {busy ? "Converting…" : "Convert →"}
               </button>
             </form>
 
@@ -155,15 +163,18 @@ export function QuickShare({ loggedIn }) {
         ) : (
           <div className="card quick-success">
             <div className="quick-check">✓</div>
-            <h2>Your safe link is ready</h2>
+            <h2>Your file is ready</h2>
             <p className="muted small">
-              Anyone with this link can view it. It renders in a locked-down
-              sandbox and its fingerprint is verified on every open.
+              Download it as a PDF or Word document — or send the safe,
+              sandboxed link. The link's fingerprint is verified on every open.
             </p>
+            <div className="quick-downloads">
+              <ExportButtons artifactId={result.artifactId} linkToken={result.token} variant="lg" />
+            </div>
             <div className="quick-linkrow">
               <input className="quick-linkfield mono" readOnly value={result.url} onFocus={(e) => e.target.select()} />
-              <button className="btn btn-secondary btn-sm" onClick={copy}>{copied ? "Copied!" : "Copy"}</button>
-              <a className="btn btn-primary btn-sm" href={result.url} target="_blank" rel="noreferrer">Open</a>
+              <button className="btn btn-secondary btn-sm" onClick={copy}>{copied ? "Copied!" : "Copy link"}</button>
+              <a className="btn btn-secondary btn-sm" href={result.url} target="_blank" rel="noreferrer">Open</a>
             </div>
             <div className="mono muted quick-fingerprint">
               fingerprint {result.sha256.slice(0, 24)}…
@@ -171,15 +182,6 @@ export function QuickShare({ loggedIn }) {
                 <> · expires {new Date(result.expiresAt).toLocaleDateString()} — then permanently deleted</>
               )}
             </div>
-
-            <button className="quick-dl-toggle" onClick={() => setShowDownloads((s) => !s)}>
-              Download options
-            </button>
-            {showDownloads && (
-              <div className="row" style={{ justifyContent: "center", marginTop: 10 }}>
-                <ExportButtons artifactId={result.artifactId} linkToken={result.token} />
-              </div>
-            )}
 
             <div className="quick-editcta">
               {result.mine ? (
@@ -197,7 +199,7 @@ export function QuickShare({ loggedIn }) {
                 </>
               )}
             </div>
-            <button className="quick-another" onClick={reset}>← Share another page</button>
+            <button className="quick-another" onClick={reset}>← Convert another page</button>
           </div>
         )}
       </section>
@@ -225,7 +227,8 @@ export function QuickShare({ loggedIn }) {
             <>
               No account needed. Want editing, comments, and access control?{" "}
               <Link href="/register">Create a free workspace</Link> or{" "}
-              <Link href="/login">sign in</Link>.
+              <Link href="/login">sign in</Link>. New here?{" "}
+              <Link href="/faq">See the FAQ &amp; comparison</Link>.
             </>
           )}
         </p>

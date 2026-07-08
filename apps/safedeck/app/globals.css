@@ -699,33 +699,47 @@ table.list tr:hover td { background: var(--volt-soft); }
   color: var(--ink);
   pointer-events: none;
 }
-.hero-stage { position: relative; z-index: 0; padding-top: 46px; }
+.hero-stage { position: relative; z-index: 0; padding-top: 40px; }
 .hero-block {
   position: absolute;
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: min(600px, 88vw);
-  height: 340px;
+  width: min(640px, 90vw);
+  height: 360px;
   background: var(--volt);
   z-index: -1;
 }
-/* hand-placed letters: heavy sans, each nudged like marker strokes */
+.hero-eyebrow {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+/* hand-placed letters: heavy sans, each word wraps as a unit, letters
+   nudged like marker strokes within it */
 .hero-word {
-  font-size: clamp(2.6rem, 10vw, 7rem);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0 0.3em;
+  font-size: clamp(2.2rem, 8.5vw, 5.6rem);
   font-weight: 900;
-  letter-spacing: -0.045em;
-  line-height: 1;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
   margin: 0 0 18px;
-  white-space: nowrap;
   text-transform: uppercase;
 }
-.hero-word span { display: inline-block; }
-.hero-word span:nth-child(odd)  { transform: rotate(-2.4deg) translateY(0.03em); }
-.hero-word span:nth-child(even) { transform: rotate(2deg) translateY(-0.045em); }
-.hero-word span:nth-child(3n)   { transform: rotate(-1.2deg) translateY(0.07em); }
-.hero-word span:nth-child(5n)   { transform: rotate(3.2deg) translateY(-0.02em); font-size: 0.93em; }
-.hero-tag { max-width: 430px; margin: 0 auto; font-size: 1rem; }
+.hero-w { display: inline-flex; }
+.hero-word .hero-w span { display: inline-block; }
+.hero-word .hero-w span:nth-child(odd)  { transform: rotate(-2.4deg) translateY(0.03em); }
+.hero-word .hero-w span:nth-child(even) { transform: rotate(2deg) translateY(-0.045em); }
+.hero-word .hero-w span:nth-child(3n)   { transform: rotate(-1.2deg) translateY(0.07em); }
+.hero-word .hero-w span:nth-child(5n)   { transform: rotate(3.2deg) translateY(-0.02em); }
+.hero-tag { max-width: 460px; margin: 0 auto; font-size: 1rem; }
 .hero-alert { max-width: 660px; margin: 18px auto -40px; text-align: left; position: relative; z-index: 1; }
 .hero-bar {
   display: flex;
@@ -840,7 +854,9 @@ table.list tr:hover td { background: var(--volt-soft); }
   color: var(--ink);
   animation: pop-in 0.24s var(--ease-sharp) both;
 }
-.quick-linkrow { display: flex; gap: 8px; margin-top: 16px; align-items: center; }
+.quick-downloads { display: flex; gap: 10px; justify-content: center; margin: 18px 0 6px; }
+.quick-downloads .btn { flex: 1; max-width: 210px; }
+.quick-linkrow { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
 .quick-linkfield {
   flex: 1;
   padding: 11px 13px;
@@ -868,12 +884,42 @@ table.list tr:hover td { background: var(--volt-soft); }
 }
 .quick-another:hover { background: var(--volt-soft); }
 .quick-signin { margin-top: 22px; }
-.quick-dl-toggle {
-  margin-top: 14px;
-  border: none; background: none; cursor: pointer;
-  color: var(--muted);
-  font-family: var(--font-scribble);
-  font-size: 0.95rem;
-  text-decoration: underline; text-underline-offset: 3px;
+
+/* ============================================================
+   FAQ + comparison
+   ============================================================ */
+.faq-body { max-width: 660px; margin: 0 auto; }
+.faq-item { padding: 18px 22px; }
+.faq-q { font-size: 1rem; text-transform: none; letter-spacing: -0.01em; margin: 0 0 6px; }
+.faq-a { margin: 0; font-size: 0.92rem; line-height: 1.55; }
+
+.table-scroll { overflow-x: auto; border: 2px solid var(--ink); }
+table.cmp {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  min-width: 640px;
+  background: var(--surface);
 }
-.quick-dl-toggle:hover { color: var(--ink); background: var(--volt-soft); }
+table.cmp th,
+table.cmp td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--hairline);
+  border-right: 1px solid var(--hairline);
+  vertical-align: top;
+}
+table.cmp thead th {
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+table.cmp tbody th[scope="row"] { font-weight: 700; background: var(--paper); white-space: nowrap; }
+/* first data column (ShareLock) gets the volt highlight */
+table.cmp tbody td:first-of-type { background: var(--volt-soft); font-weight: 600; }
+table.cmp tr td:last-child, table.cmp tr th:last-child { border-right: none; }
+table.cmp tbody tr:last-child th, table.cmp tbody tr:last-child td { border-bottom: none; }
