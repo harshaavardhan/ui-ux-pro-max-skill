@@ -14,6 +14,7 @@ export function QuickShare({ loggedIn }) {
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
   const [showDownloads, setShowDownloads] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   async function create(e) {
     e.preventDefault();
@@ -47,16 +48,28 @@ export function QuickShare({ loggedIn }) {
     setShowDownloads(false);
   }
 
-  function onFile(e) {
-    const file = e.target.files?.[0];
+  function readFile(file) {
     if (!file) return;
+    if (!/\.html?$/i.test(file.name) && file.type !== "text/html") {
+      setError("Please drop an .html file");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
+      setError("");
       setMode("paste");
       setHtml(String(reader.result || ""));
       if (!title) setTitle(file.name.replace(/\.html?$/i, ""));
     };
     reader.readAsText(file);
+  }
+  function onFile(e) {
+    readFile(e.target.files?.[0]);
+  }
+  function onDrop(e) {
+    e.preventDefault();
+    setDragging(false);
+    readFile(e.dataTransfer.files?.[0]);
   }
 
   async function copy() {
@@ -79,7 +92,16 @@ export function QuickShare({ loggedIn }) {
         </p>
 
         {!result ? (
-          <form onSubmit={create} className="quick-card">
+          <form
+            onSubmit={create}
+            className={`quick-card ${dragging ? "dragging" : ""}`}
+            onDragOver={(e) => { e.preventDefault(); if (!dragging) setDragging(true); }}
+            onDragLeave={(e) => { if (e.currentTarget === e.target) setDragging(false); }}
+            onDrop={onDrop}
+          >
+            {dragging && (
+              <div className="quick-drop-hint">Drop your .html file to load it</div>
+            )}
             <div className="quick-modes">
               <button type="button" className={`quick-mode ${mode === "paste" ? "active" : ""}`} onClick={() => setMode("paste")}>
                 Paste HTML

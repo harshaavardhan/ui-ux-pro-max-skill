@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Comments } from "@/app/components/comments.js";
 import { LabelBadge, LabelPicker } from "@/app/components/labels.js";
+import { WindowBar } from "@/app/components/window-bar.js";
 
 function WatermarkOverlay({ text }) {
   return (
@@ -127,15 +128,19 @@ export default function ArtifactPage({ params }) {
         </div>
 
         {current ? (
-          <div className="viewer-wrap">
-            <iframe
-              key={current.id}
-              className="viewer-frame"
-              sandbox="allow-scripts"
-              src={`/api/render/${current.id}`}
-              title={artifact.title}
-            />
-            {watermarkText && <WatermarkOverlay text={watermarkText} />}
+          <div>
+            <WindowBar title={`${artifact.title} — v${current.version_number}`} />
+            <div className="viewer-wrap" style={{ marginTop: 0 }}>
+              <iframe
+                key={current.id}
+                className="viewer-frame"
+                sandbox="allow-scripts"
+                src={`/api/render/${current.id}`}
+                title={artifact.title}
+                style={{ borderTop: "none", borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
+              />
+              {watermarkText && <WatermarkOverlay text={watermarkText} />}
+            </div>
           </div>
         ) : (
           <div className="alert alert-warn">No versions yet.</div>

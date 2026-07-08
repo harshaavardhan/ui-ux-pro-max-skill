@@ -6,6 +6,7 @@ import Link from "next/link";
 import { splitPages, joinPages, blankPage } from "@/lib/pages.js";
 import { buildEditableDoc } from "@/lib/editor-runtime.js";
 import { Inspector, AiAssistant } from "@/app/components/editor-panels.js";
+import { WindowBar } from "@/app/components/window-bar.js";
 
 async function api(path, opts) {
   const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
@@ -31,13 +32,72 @@ export default function EditPage({ params }) {
   const [credits, setCredits] = useState(null);
   const [sourceMode, setSourceMode] = useState(false);
   const [sourceText, setSourceText] = useState("");
+  const [canvasEpoch, setCanvasEpoch] = useState(0); // bump to force canvas reload
+  const [histVer, setHistVer] = useState(0); // re-render undo/redo buttons
 
   const iframeRef = useRef(null);
   const heartbeatRef = useRef(null);
   const docRef = useRef(null);
   const pageIdxRef = useRef(0);
+  const histRef = useRef({ stack: [], idx: -1 }); // undo/redo snapshots
+  const restoringRef = useRef(false);
   docRef.current = doc;
   pageIdxRef.current = pageIdx;
+
+  // ---- undo / redo history (snapshots of pages + source) ----
+  useEffect(() => {
+    if (!doc) return;
+    if (restoringRef.current) { restoringRef.current = false; return; }
+    const snap = JSON.stringify({ p: doc.pages, s: sourceText });
+    const h = histRef.current;
+    if (h.stack[h.idx] === snap) return;
+    h.stack = h.stack.slice(0, h.idx + 1);
+    h.stack.push(snap);
+    if (h.stack.length > 100) h.stack.shift(); // cap
+    h.idx = h.stack.length - 1;
+    setHistVer((v) => v + 1);
+  }, [doc, sourceText]);
+
+  function restore(snap) {
+    const parsed = JSON.parse(snap);
+    restoringRef.current = true;
+    setDoc((d) => ({ ...d, pages: parsed.p }));
+    setSourceText(parsed.s);
+    setSelected(null);
+    setDirty(true);
+    setCanvasEpoch((e) => e + 1);
+  }
+  function undo() {
+    const h = histRef.current;
+    if (h.idx <= 0) return;
+    h.idx -= 1;
+    setHistVer((v) => v + 1);
+    restore(h.stack[h.idx]);
+  }
+  function redo() {
+    const h = histRef.current;
+    if (h.idx >= h.stack.length - 1) return;
+    h.idx += 1;
+    setHistVer((v) => v + 1);
+    restore(h.stack[h.idx]);
+  }
+  const canUndo = histVer >= 0 && histRef.current.idx > 0;
+  const canRedo = histRef.current.idx < histRef.current.stack.length - 1;
+
+  // ---- keyboard shortcuts (⌘Z / ⌘⇧Z / ⌘S) ----
+  const actionsRef = useRef({});
+  useEffect(() => {
+    function onKey(e) {
+      const meta = e.metaKey || e.ctrlKey;
+      if (!meta) return;
+      const k = e.key.toLowerCase();
+      if (k === "z" && !e.shiftKey) { e.preventDefault(); actionsRef.current.undo?.(); }
+      else if ((k === "z" && e.shiftKey) || k === "y") { e.preventDefault(); actionsRef.current.redo?.(); }
+      else if (k === "s") { e.preventDefault(); actionsRef.current.save?.(); }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // ---- lock ----
   const acquireLock = useCallback(async (takeover = false) => {
@@ -211,6 +271,7 @@ export default function EditPage({ params }) {
     return <main className="page"><div className="container"><div className="skeleton" style={{ height: 480 }}>loading</div></div></main>;
 
   const pages = doc.pages;
+  actionsRef.current = { undo, redo, save };
 
   return (
     <div className="studio">
@@ -222,6 +283,10 @@ export default function EditPage({ params }) {
           {dirty && <span className="badge badge-warn">unsaved</span>}
         </div>
         <div className="row" style={{ gap: 8 }}>
+          <div className="undo-group">
+            <button className="undo-btn" onClick={undo} disabled={!canUndo} title="Undo (⌘Z)">↶</button>
+            <button className="undo-btn" onClick={redo} disabled={!canRedo} title="Redo (⌘⇧Z)">↷</button>
+          </div>
           <button className="btn btn-secondary btn-sm" onClick={sourceMode ? exitSource : enterSource}>
             {sourceMode ? "Visual editor" : "Edit source"}
           </button>
@@ -229,7 +294,7 @@ export default function EditPage({ params }) {
             type="text" value={note} onChange={(e) => setNote(e.target.value)}
             placeholder="Version note…" className="note-input"
           />
-          <button className="btn btn-primary btn-sm" onClick={save} disabled={busy}>
+          <button className="btn btn-primary btn-sm" onClick={save} disabled={busy} title="Save (⌘S)">
             {busy ? "Saving…" : "Save version"}
           </button>
         </div>
@@ -291,17 +356,20 @@ export default function EditPage({ params }) {
           ) : (
             <>
               <div className="canvas-hint muted small">
-                Click to select · double-click text to edit · use the panel to restyle
+                Click to select · double-click text to edit · ⌘Z to undo · ⌘S to save
               </div>
               <div className="canvas-frame-wrap">
-                <iframe
-                  key={`${pageIdx}-${doc.pages.length}`}
-                  ref={iframeRef}
-                  className="canvas-frame"
-                  sandbox="allow-scripts"
-                  srcDoc={currentPageDoc(true)}
-                  title="editor canvas"
-                />
+                <div className="canvas-stage">
+                  <WindowBar title={`Page ${pageIdx + 1} of ${doc.pages.length}`} />
+                  <iframe
+                    key={`${pageIdx}-${doc.pages.length}-${canvasEpoch}`}
+                    ref={iframeRef}
+                    className="canvas-frame"
+                    sandbox="allow-scripts"
+                    srcDoc={currentPageDoc(true)}
+                    title="editor canvas"
+                  />
+                </div>
               </div>
             </>
           )}
@@ -340,6 +408,7 @@ export default function EditPage({ params }) {
                     });
                     setSelected(null);
                     setDirty(true);
+                    setCanvasEpoch((e) => e + 1); // AI replaced the page → reload canvas
                   }}
                 />
               </div>
